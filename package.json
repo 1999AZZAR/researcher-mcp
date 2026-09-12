@@ -20,6 +20,7 @@
     "axios": "^1.4.0",
     "axios-retry": "^3.3.1",
     "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^17.4.2",
     "lru-cache": "^7.14.0",
     "sentiment": "^5.0.2",
     "zod": "^3.24.3"

@@ -314,7 +314,5 @@ export class WikipediaExtendedFeatures {
     } finally {
       clearTimeout(timeout);
     }
-    
-    return response.json();
   }
 } 

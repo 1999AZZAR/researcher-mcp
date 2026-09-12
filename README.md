@@ -272,7 +272,7 @@ Create a `.cursor/mcp.json` file in your project or `~/.cursor/mcp.json` in your
 
 For global configuration (`~/.cursor/mcp.json`), replace `${workspaceFolder}` with the full path to your researcher-mcp directory.
 
-**Note**: After building with `npm run build`, the server will be available at `dist/index.js` for production use.
+**Note**: After building with `npm run build`, the server will be available at `dist/index.js` for production use. The build also compiles the modular tree (`src/`, 10 Wikipedia tools + 6 Google tools with Sources footers and flag-gated HeLa envelopes), runnable as `node dist/src/index.js` — Google tools are skipped when `GOOGLE_API_KEY`/`GOOGLE_CSE_ID` are unset.
 
 ### Environment Variables
 

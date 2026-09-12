@@ -1,9 +1,9 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import LRUCache from "lru-cache";
-import { EnhancedWikipediaService } from "./wikipediaService";
-import { WikipediaExtendedFeatures } from "./additionalFeatures";
-import { searchProvenance, pageProvenance, summaryProvenance, formatSourcesFooter } from "./provenance";
+import { EnhancedWikipediaService } from "./wikipediaService.js";
+import { WikipediaExtendedFeatures } from "./additionalFeatures.js";
+import { searchProvenance, pageProvenance, summaryProvenance, formatSourcesFooter } from "./provenance.js";
 import { registerEnvTool } from "./envelope.js";
 
 export function createWikipediaMcp(
