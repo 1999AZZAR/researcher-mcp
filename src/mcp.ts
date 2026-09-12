@@ -3,6 +3,8 @@ import { z } from "zod";
 import LRUCache from "lru-cache";
 import { EnhancedWikipediaService } from "./wikipediaService";
 import { WikipediaExtendedFeatures } from "./additionalFeatures";
+import { searchProvenance, pageProvenance, summaryProvenance, formatSourcesFooter } from "./provenance";
+import { registerEnvTool } from "./envelope.js";
 
 export function createWikipediaMcp(
   wikipediaService: EnhancedWikipediaService,
@@ -19,7 +21,7 @@ export function createWikipediaMcp(
     version: "1.0.0",
   });
 
-  server.registerTool(
+  registerEnvTool(server, 
     "search",
     {
       title: "Wikipedia Search",
@@ -51,18 +53,24 @@ export function createWikipediaMcp(
     async ({ query, lang, limit, offset, includeSnippets }) => {
       const results = await wikipediaService.search(query, { lang, limit, offset, includeSnippets });
       const searchResults = results?.query?.search || [];
+      // C2: every search hit carries its canonical page URI as provenance.
+      // Hits are ranking-level evidence (0.85), not full parses (0.95).
+      const footer = formatSourcesFooter([
+        searchProvenance(query, lang),
+        ...searchResults.map((result: any) => ({ ...pageProvenance(result.title, lang), confidence: 0.85 })),
+      ]);
       return {
         content: [
           {
             type: "text",
-            text: `Found ${searchResults.length} results for "${query}":\n\n${searchResults.map((result: any) => `- ${result.title}: ${result.snippet || 'No snippet available'}`).join('\n')}`,
+            text: `Found ${searchResults.length} results for "${query}":\n\n${searchResults.map((result: any) => `- ${result.title}: ${result.snippet || 'No snippet available'}`).join('\n')}${footer}`,
           },
         ],
       };
     }
   );
 
-  server.registerTool(
+  registerEnvTool(server, 
     "getPage",
     {
       title: "Get Wikipedia Page",
@@ -113,14 +121,14 @@ export function createWikipediaMcp(
         content: [
           {
             type: "text",
-            text: `Page: ${pageData.title}\nText: ${pageData.text?.['*']?.substring(0, 1000) || 'No text available'}...`,
+            text: `Page: ${pageData.title}\nText: ${pageData.text?.['*']?.substring(0, 1000) || 'No text available'}...${formatSourcesFooter([pageProvenance(pageData.title, lang)])}`,
           },
         ],
       };
     }
   );
 
-  server.registerTool(
+  registerEnvTool(server, 
     "getPageSummary",
     {
       title: "Get Wikipedia Page Summary",
@@ -150,14 +158,14 @@ export function createWikipediaMcp(
         content: [
           {
             type: "text",
-            text: `Summary for "${title}":\n\n${result.extract || 'No summary available'}`,
+            text: `Summary for "${title}":\n\n${result.extract || 'No summary available'}${formatSourcesFooter([summaryProvenance(title, lang)])}`,
           },
         ],
       };
     }
   );
 
-  server.registerTool(
+  registerEnvTool(server, 
     "getPageById",
     {
       title: "Get Wikipedia Page by ID",
@@ -215,7 +223,7 @@ export function createWikipediaMcp(
     }
   );
 
-  server.registerTool(
+  registerEnvTool(server, 
     "random",
     {
       title: "Get Random Wikipedia Page",
@@ -252,7 +260,7 @@ export function createWikipediaMcp(
     }
   );
 
-  server.registerTool(
+  registerEnvTool(server, 
     "pageLanguages",
     {
       title: "Get Wikipedia Page Languages",
@@ -292,7 +300,7 @@ export function createWikipediaMcp(
   );
 
   // Batch Operations Tools
-  server.registerTool(
+  registerEnvTool(server, 
     "batchSearch",
     {
       title: "Batch Wikipedia Search",
@@ -341,7 +349,7 @@ export function createWikipediaMcp(
     }
   );
 
-  server.registerTool(
+  registerEnvTool(server, 
     "batchGetPages",
     {
       title: "Batch Get Wikipedia Pages",
@@ -392,7 +400,7 @@ export function createWikipediaMcp(
   );
 
   // Geographic Search Tool
-  server.registerTool(
+  registerEnvTool(server, 
     "searchNearby",
     {
       title: "Search Wikipedia Articles Near Location",
@@ -450,7 +458,7 @@ export function createWikipediaMcp(
   );
 
   // Category Exploration Tool
-  server.registerTool(
+  registerEnvTool(server, 
     "getPagesInCategory",
     {
       title: "Get Pages in Wikipedia Category",

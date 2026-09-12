@@ -287,6 +287,9 @@ For global configuration (`~/.cursor/mcp.json`), replace `${workspaceFolder}` wi
 | `RESEARCHER_GOOGLE_CACHE_TTL_MS` | Google cache TTL (ms)     | `1800000`               | No        |
 | `RESEARCHER_DEFAULT_LANG`        | Default Wikipedia language (overrides `WIKIPEDIA_DEFAULT_LANGUAGE`) | `en` | No |
 | `RESEARCHER_USER_AGENT`          | HTTP User-Agent for fetches | `hela-enzyme/1.0 (researcher-mcp; …)` | No |
+| `HELA_ENVELOPE` | Set to `true` to wrap tool results in the canonical HeLaResult envelope (`ok/summary/data/artifacts/provenance/warnings/sideEffects/execution`) | *unset = off (byte-identical legacy output)* | No |
+
+Wikipedia `search`/`getPage`/`getPageSummary` results carry a `Sources:` footer (canonical page URI, `retrieved_at`, confidence, freshness) so downstream consumers can cite provenance.
 
 *Google Search is optional - the server works with Wikipedia-only functionality
 
