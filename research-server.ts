@@ -1388,7 +1388,7 @@ export default class ResearchMCPServer {
   private async extractUrlMetadata(url: string): Promise<any> {
     try {
       const response = await axios.head(url, { timeout: 5000, headers: { 'User-Agent': config.userAgent } });
-      const contentType = response.headers['content-type'] || 'unknown';
+      const contentType = String(response.headers['content-type'] || 'unknown');
 
       // Try to get more metadata if it's HTML
       if (contentType.includes('text/html')) {
