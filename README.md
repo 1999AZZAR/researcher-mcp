@@ -287,9 +287,12 @@ For global configuration (`~/.cursor/mcp.json`), replace `${workspaceFolder}` wi
 | `RESEARCHER_GOOGLE_CACHE_TTL_MS` | Google cache TTL (ms)     | `1800000`               | No        |
 | `RESEARCHER_DEFAULT_LANG`        | Default Wikipedia language (overrides `WIKIPEDIA_DEFAULT_LANGUAGE`) | `en` | No |
 | `RESEARCHER_USER_AGENT`          | HTTP User-Agent for fetches | `hela-enzyme/1.0 (researcher-mcp; …)` | No |
+| `JINA_API_KEY`                   | Jina reader quota key (anonymous works, rate-limited) | - | No |
 | `HELA_ENVELOPE` | Set to `true` to wrap tool results in the canonical HeLaResult envelope (`ok/summary/data/artifacts/provenance/warnings/sideEffects/execution`) | *unset = off (byte-identical legacy output)* | No |
 
 Wikipedia `search`/`getPage`/`getPageSummary` results carry a `Sources:` footer (canonical page URI, `retrieved_at`, confidence, freshness) so downstream consumers can cite provenance.
+
+**Keyless search (no API keys).** The modular server (`node dist/src/index.js`) always registers `free_search`: parallel fan-out over Mojeek + DuckDuckGo + Yep + Bing HTML, URL-deduped, per-engine failures reported as coverage instead of failing the call. Live-tested: DuckDuckGo + Bing answer reliably; Mojeek (Captcha) and Yep (403) bot-block datacenter IPs but stay registered as best-effort for friendlier networks. `extract_content` falls back to the keyless Jina reader when Google keys are unset.
 
 *Google Search is optional - the server works with Wikipedia-only functionality
 

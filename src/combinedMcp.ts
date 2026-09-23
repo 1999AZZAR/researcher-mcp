@@ -3,6 +3,7 @@ import { z } from "zod";
 import { EnhancedWikipediaService } from "./wikipediaService.js";
 import { WikipediaExtendedFeatures } from "./additionalFeatures.js";
 import { GoogleSearchService } from "./googleSearchService.js";
+import { freeSearch, freeExtract, listFreeEngines } from "./freeSearchService.js";
 import { createWikipediaMcp } from "./mcp.js";
 import { registerEnvTool } from "./envelope.js";
 import {
@@ -40,8 +41,80 @@ export function createCombinedMcp(
 ): McpServer {
   const server = createWikipediaMcp(wikipediaService, extendedFeatures);
 
+  registerEnvTool(
+    server,
+    "free_search",
+    {
+      title: "Free Search",
+      description:
+        "Keyless web search: fans out to Mojeek + DuckDuckGo + Yep + Bing in parallel, no API keys needed. Dedups overlap by URL.",
+      inputSchema: {
+        query: z.string().describe("The search query."),
+        maxResults: z.number().min(1).max(20).optional().describe("Max results total."),
+        engines: z
+          .array(z.string())
+          .optional()
+          .describe("Subset of engines, default all: " + listFreeEngines().join(", ")),      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async (args) => {
+      const r = await freeSearch(args.query, {
+        maxResults: args.maxResults ?? 10,
+        engines: args.engines,
+      });
+      const body =
+        r.items.length === 0
+          ? "No results from keyless engines."
+          : r.items
+              .map(
+                (it, i) =>
+                  `${i + 1}. ${it.title} [${it.engine}]\n   ${it.link}\n   ${it.snippet ?? ""}`
+              )
+              .join("\n");
+      const footer = formatSourcesFooter([
+        {
+          source: `free-search:${r.enginesUsed.join("+") || "none"}:${encodeURIComponent(args.query)}`,
+          retrieved_at: new Date().toISOString(),
+          confidence: 0.8,
+          freshness: "fresh",
+        },
+        searchProvenance(args.query),
+      ]);
+      const coverage =
+        r.enginesFailed.length > 0
+          ? `\n\n(engines failed this call: ${r.enginesFailed.join(", ")})`
+          : "";
+      return `${body}\n\n${footer}${coverage}`;
+    }
+  );
+
   if (!googleSearchService) {
     console.error("Google tools skipped: GOOGLE_API_KEY / GOOGLE_CSE_ID not set");
+    registerEnvTool(
+      server,
+      "extract_content",
+      {
+        title: "Extract Content",
+        description:
+          "Fetch a URL and extract its main content (keyless Jina reader fallback; set JINA_API_KEY for higher quota).",
+        inputSchema: {
+          url: z.string().describe("The URL to extract."),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: true },
+      },
+      async (args) => {
+        const a = await freeExtract(args.url);
+        const footer = formatSourcesFooter([
+          {
+            source: args.url,
+            retrieved_at: new Date().toISOString(),
+            confidence: 0.85,
+            freshness: "fresh",
+          },
+        ]);
+        return [`# ${a.title}`, ``, a.content.slice(0, 8000), ``, `(${a.wordCount} words)`, ``, footer].join("\n");
+      }
+    );
     return server;
   }
   const google = googleSearchService;
