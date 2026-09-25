@@ -294,6 +294,8 @@ Wikipedia `search`/`getPage`/`getPageSummary` results carry a `Sources:` footer 
 
 **Keyless search (no API keys).** The modular server (`node dist/src/index.js`) always registers `free_search`: parallel fan-out over Mojeek + DuckDuckGo + Yep + Bing HTML, URL-deduped, per-engine failures reported as coverage instead of failing the call. Live-tested: DuckDuckGo + Bing answer reliably; Mojeek (Captcha) and Yep (403) bot-block datacenter IPs but stay registered as best-effort for friendlier networks. `extract_content` falls back to the keyless Jina reader when Google keys are unset.
 
+**Global `search` (no API keys).** The modular server's bare `search` tool fans out to Google (when keys are set) plus the keyless engines in parallel, dedupes by URL (Google hits first), and always carries a `Sources:` footer. A Google failure degrades to keyless results instead of failing the call. In the combined server the Wikipedia keyword tool keeps working as `wikipedia_search`.
+
 *Google Search is optional - the server works with Wikipedia-only functionality
 
 ### Google API Setup

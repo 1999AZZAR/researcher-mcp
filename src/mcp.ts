@@ -8,7 +8,8 @@ import { registerEnvTool } from "./envelope.js";
 
 export function createWikipediaMcp(
   wikipediaService: EnhancedWikipediaService,
-  extendedFeatures: WikipediaExtendedFeatures
+  extendedFeatures: WikipediaExtendedFeatures,
+  opts?: { wikipediaSearchName?: string }
 ): McpServer {
   // Initialize cache for resources
   const cache = new LRUCache<string, any>({
@@ -22,7 +23,7 @@ export function createWikipediaMcp(
   });
 
   registerEnvTool(server, 
-    "search",
+    opts?.wikipediaSearchName ?? "search",
     {
       title: "Wikipedia Search",
       description: "Search Wikipedia for articles matching a query.",

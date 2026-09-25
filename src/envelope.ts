@@ -172,5 +172,14 @@ export function registerEnvTool<TArgs extends z.ZodRawShape>(
   },
   cb: (args: z.objectOutputType<TArgs, z.ZodTypeAny, "strip">) => any,
 ): void {
-  (server as any).registerTool(name, config, async (args: any) => withEnvelope(name, await cb(args)));
+  (server as any).registerTool(name, config, async (args: any) => {
+    let result = await cb(args);
+    // The SDK requires a CallToolResult object; normalize bare-string
+    // callbacks (used by every tool in mcp.ts / combinedMcp.ts) so a raw
+    // string never reaches result validation.
+    if (typeof result === "string") {
+      result = { content: [{ type: "text" as const, text: result }] };
+    }
+    return withEnvelope(name, result);
+  });
 }

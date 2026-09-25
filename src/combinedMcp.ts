@@ -39,7 +39,11 @@ export function createCombinedMcp(
   extendedFeatures: WikipediaExtendedFeatures,
   googleSearchService: GoogleSearchService | null
 ): McpServer {
-  const server = createWikipediaMcp(wikipediaService, extendedFeatures);
+  // Bare "search" is the global web tool (registered below); Wikipedia's
+  // search keeps working in the combined server as "wikipedia_search".
+  const server = createWikipediaMcp(wikipediaService, extendedFeatures, {
+    wikipediaSearchName: "wikipedia_search",
+  });
 
   registerEnvTool(
     server,
@@ -83,6 +87,76 @@ export function createCombinedMcp(
       const coverage =
         r.enginesFailed.length > 0
           ? `\n\n(engines failed this call: ${r.enginesFailed.join(", ")})`
+          : "";
+      return `${body}\n\n${footer}${coverage}`;
+    }
+  );
+
+  // Global search: always registered (before the Google early-return below).
+  // Fans out to Google (when keys are set) + keyless engines in parallel,
+  // dedupes by URL, Google hits first. Never fails hard: a Google error
+  // just degrades to keyless results.
+  registerEnvTool(
+    server,
+    "search",
+    {
+      title: "Search",
+      description:
+        "Global web search: Google (when API keys are set) plus keyless engines (Mojeek, DuckDuckGo, Yep, Bing) in parallel, deduped by URL. Works with zero API keys.",
+      inputSchema: {
+        query: z.string().describe("The search query."),
+        maxResults: z.number().min(1).max(20).optional().describe("Max results total."),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async (args) => {
+      const n = args.maxResults ?? 10;
+      const [free, g] = await Promise.all([
+        freeSearch(args.query, { maxResults: n }),
+        googleSearchService
+          ? googleSearchService
+              .search({ q: args.query, num: Math.min(n, 10) })
+              .catch((e) => {
+                console.error("search: google failed, keyless only:", (e as Error)?.message ?? e);
+                return null;
+              })
+          : Promise.resolve(null),
+      ]);
+      const seen = new Set<string>();
+      const merged: Array<{ title: string; link: string; snippet: string; via: string }> = [];
+      for (const it of g?.items ?? []) {
+        if (it.link && !seen.has(it.link)) {
+          seen.add(it.link);
+          merged.push({ title: it.title, link: it.link, snippet: it.snippet ?? "", via: "google" });
+        }
+      }
+      for (const it of free.items) {
+        if (it.link && !seen.has(it.link)) {
+          seen.add(it.link);
+          merged.push({ title: it.title, link: it.link, snippet: it.snippet ?? "", via: it.engine });
+        }
+      }
+      const body =
+        merged.length === 0
+          ? "No results."
+          : merged
+              .slice(0, n)
+              .map((r, i) => `${i + 1}. ${r.title} [${r.via}]\n   ${r.link}\n   ${r.snippet}`)
+              .join("\n");
+      const provs: SourceProvenance[] = [
+        {
+          source: `free-search:${free.enginesUsed.join("+") || "none"}:${encodeURIComponent(args.query)}`,
+          retrieved_at: new Date().toISOString(),
+          confidence: 0.8,
+          freshness: "fresh",
+        },
+        searchProvenance(args.query),
+      ];
+      if (g) provs.unshift(googleSource(args.query));
+      const footer = formatSourcesFooter(provs);
+      const coverage =
+        free.enginesFailed.length > 0
+          ? `\n\n(keyless engines failed this call: ${free.enginesFailed.join(", ")})`
           : "";
       return `${body}\n\n${footer}${coverage}`;
     }
