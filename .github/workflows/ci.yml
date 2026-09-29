@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref: a new push makes the old result moot.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: build, lint, test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # package.json declares engines.node >= 18. Node 18 is the floor we
+        # claim to support; 20/22 are what people actually run.
+        node: ['18', '20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (tsc)
+        run: npm run build
+
+      - name: Lint
+        # Fails on errors. The 200+ `no-explicit-any` warnings are deliberate
+        # (the config sets that rule to "warn") and do not fail the job.
+        run: npm run lint
+
+      - name: Test
+        run: npm test

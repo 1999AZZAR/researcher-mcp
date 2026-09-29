@@ -9000,7 +9000,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Content extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'search_analytics':
             if (!config.google.apiKey || !config.google.cseId) {
@@ -9038,7 +9038,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Search analytics failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'multi_site_search':
             if (!config.google.apiKey || !config.google.cseId) {
@@ -9069,7 +9069,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Multi-site search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'academic_search':
             if (!config.google.apiKey || !config.google.cseId) {
@@ -9100,7 +9100,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Academic search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'news_monitor':
             if (!config.google.apiKey || !config.google.cseId) {
@@ -9133,7 +9133,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `News search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'content_summarizer':
             const { urls, maxLength: maxLengthRaw = 200 } = args as any;
@@ -9172,7 +9172,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Content summarization failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'fact_checker':
             const { claim } = args as any;
@@ -9203,7 +9203,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Fact checking failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'research_assistant':
             const { researchTopic, researchType = 'comprehensive', depth = 'standard' } = args as any;
@@ -9239,7 +9239,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Research assistant failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'research_brief': {
             const { query: briefQuery, num: briefNum = 5, lang: briefLang = 'en' } = args as any;
@@ -9335,7 +9335,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Search trends failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'wikipedia_get_page_by_id':
             const { id, lang: idLang = 'en' } = args as any;
@@ -9357,7 +9357,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Failed to get Wikipedia page by ID: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'wikipedia_get_summary':
             const { title: summaryTitle, lang: summaryLang = 'en' } = args as any;
@@ -9394,7 +9394,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Failed to get Wikipedia summary: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'wikipedia_random':
             const { lang: randomLang = 'en' } = args as any;
@@ -9425,7 +9425,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Failed to get random Wikipedia page: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'wikipedia_page_languages':
             const { title: langTitle, lang: langLang = 'en' } = args as any;
@@ -9466,7 +9466,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Failed to get Wikipedia page languages: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'wikipedia_batch_search':
             const { queries: wikiQueries, lang: batchLang = 'en', limit: batchLimit = 5 } = args as any;
@@ -9495,7 +9495,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Batch Wikipedia search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'wikipedia_batch_get_pages':
             const { titles: batchTitles, lang: batchPagesLang = 'en' } = args as any;
@@ -9536,7 +9536,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Batch Wikipedia page retrieval failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'wikipedia_search_nearby':
             const { lat, lon, radius = 1000, lang: nearbyLang = 'en', limit: nearbyLimit = 10 } = args as any;
@@ -9574,7 +9574,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Wikipedia nearby search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'wikipedia_get_pages_in_category':
             const { category, lang: catLang = 'en', limit: catLimit = 20, type: catType = 'page' } = args as any;
@@ -9613,7 +9613,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Failed to get Wikipedia category pages: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'content_sentiment_analysis':
             const { text } = args as any;
@@ -9636,7 +9636,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Sentiment analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'keyword_extraction':
             const { text: keywordText, maxKeywords = 10 } = args as any;
@@ -9654,7 +9654,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Keyword extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'url_metadata_extractor':
             const { url: metaUrl } = args as any;
@@ -9675,7 +9675,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `URL metadata extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'citation_formatter':
             const { title: citeTitle, authors = [], year, source, url: citeUrl, style = 'APA' } = args as any;
@@ -9691,7 +9691,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Citation formatting failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'research_session_manager':
             const { action, sessionName, content: sessionContent } = args as any;
@@ -9704,7 +9704,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Session management failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'content_deduplication':
             const { content: dupContent, similarityThreshold = 0.8 } = args as any;
@@ -9726,7 +9726,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Content deduplication failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'archive_org_search':
             const { url: archiveUrl, year: archiveYear } = args as any;
@@ -9745,7 +9745,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Archive.org search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           case 'data_export':
             const { data: exportData, format = 'json', filename } = args as any;
@@ -9761,7 +9761,7 @@ Develop and execute a strategic research networking approach to build valuable c
               return {
                 content: [{ type: 'text', text: `Data export failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
-            };
+            }
 
           default:
             return {
