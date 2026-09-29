@@ -24,10 +24,14 @@ A Model Context Protocol (MCP) server that combines Google Custom Search and Wik
 1. Clone and install:
 
    ```bash
-   git clone https://github.com/your-repo/researcher-mcp.git
+   git clone https://github.com/1999AZZAR/researcher-mcp.git
    cd researcher-mcp
    npm install
    ```
+
+   Requires **Node.js >= 20.18.1**. The keyless search path statically imports
+   `cheerio`, whose `undici` dependency needs the global `File` that landed in
+   Node 20 — on Node 18 the server fails at import, not just in tests.
 
 2. Configure environment (optional):
 

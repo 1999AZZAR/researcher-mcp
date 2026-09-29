@@ -21,9 +21,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # package.json declares engines.node >= 18. Node 18 is the floor we
-        # claim to support; 20/22 are what people actually run.
-        node: ['18', '20', '22']
+        # 20 is the floor: freeSearchService statically imports cheerio, whose
+        # undici dependency needs the global File that landed in Node 20. The
+        # old engines claim of >=18 was wrong and crashed at import, not just
+        # in tests. 22/24 cover current LTS.
+        node: ['20', '22', '24']
 
     steps:
       - uses: actions/checkout@v4
