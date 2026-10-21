@@ -4,15 +4,15 @@
 > **Part of the [HeLa MCP Ecosystem](https://github.com/1999AZZAR/hela-mcp-ecosystem)** — This server is **HeLa Enzyme (`hela-enzyme`)** — the *Knowledge* component of the HeLa cellular architecture. See the [ecosystem docs](https://github.com/1999AZZAR/hela-mcp-ecosystem) for profiles, workflows, and multi-client setup.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.18.1-brightgreen)](https://nodejs.org/)
 
-A Model Context Protocol (MCP) server that combines Google Custom Search and Wikipedia functionality for research and information retrieval. The server provides 28 tools, 23 resources, and 22 research prompts for search, analysis, content extraction, and research management.
+A Model Context Protocol (MCP) server that combines Google Custom Search, public academic/news APIs, and Wikipedia functionality for deep research and information retrieval. The server provides 29 tools, 23 resources, and 22 research prompts with **full zero-key fallback out of the box** — no paid API keys required.
 
 ![Blotcat operating a crane pulling Google Search and Wikipedia blocks into a Research MCP funnel](assets/blotcat-hero.jpg)
 
 ## Features
 
-- 28 tools: Google Search (10), Wikipedia (10), and enhanced analysis (8)
+- 29 tools: Web & Academic Search (11), Wikipedia (10), and enhanced analysis (8) — **100% Zero-Key out of the box**
 - 23 resources: Templates, guides, and cached research data
 - 22 prompts: Structured prompts covering research methodologies
 - 8 analysis tools that work without requiring additional API keys
@@ -58,7 +58,7 @@ A Model Context Protocol (MCP) server that combines Google Custom Search and Wik
    }
    ```
 
-4. The server will be available in your MCP client with 28 tools, 23 resources, and 22 prompts.
+4. The server will be available in your MCP client with 29 tools, 23 resources, and 22 prompts (zero keys required).
 
 ## Origins
 
@@ -73,7 +73,7 @@ The researcher-mcp builds upon these foundations, adding enhanced analysis tools
 
 - [Features](#features)
   - [Enhanced Analysis Tools](#enhanced-analysis-tools)
-  - [Google Search Tools](#google-search-tools)
+  - [Web & Academic Search Tools](#web--academic-search-tools)
   - [Wikipedia Tools](#wikipedia-tools)
   - [Research Resources](#research-resources)
   - [Research Prompts](#research-prompts)
@@ -86,7 +86,7 @@ The researcher-mcp builds upon these foundations, adding enhanced analysis tools
   - [Local Development](#local-development)
   - [Production Deployment](#production-deployment)
 - [Available Capabilities](#available-capabilities)
-  - [Tools (28 total)](#tools-28-total)
+  - [Tools (29 total)](#tools-29-total)
   - [Resources (23 total)](#resources-23-total)
   - [Prompts (22 total)](#prompts-22-total)
 - [Architecture](#architecture)
@@ -114,22 +114,23 @@ Built-in analysis capabilities that work without external dependencies:
 - `archive_org_search` - Search archived web pages on Archive.org (Wayback Machine)
 - `data_export` - Export research data in various formats (JSON, CSV, Markdown)
 
-### Google Search Tools (11 tools)
+### Web & Academic Search Tools (11 tools — Zero-Key Out of the Box)
 
 ![Blotcat fishing for search results and rapidly stamping them into an LRU cache icebox](assets/blotcat-google-cache.jpg)
 
-Web search and content analysis capabilities:
+Web search, academic discovery, news monitoring, and intelligence capabilities with automatic zero-key fallback:
 
-- `google_search` - Search the web using Google Custom Search API
-- `extract_content` - Extract main content from web pages
-- `search_analytics` - Analyze search trends and get insights from multiple queries
-- `multi_site_search` - Search across multiple specific websites simultaneously
-- `news_monitor` - Monitor news and get alerts for specific topics
-- `academic_search` - Search academic papers and research documents
-- `content_summarizer` - Summarize content from multiple URLs
-- `fact_checker` - Verify claims by searching for fact-checking sources
-- `research_assistant` - Comprehensive research assistant with multi-query analysis
-- `search_trends` - Track and analyze search interest trends over time
+- `google_search` - Search the web with Google Custom Search or automatic keyless multi-engine fallback (DuckDuckGo, Bing, etc.)
+- `extract_content` - Extract clean content from web pages with automatic Jina Reader fallback for SPAs/anti-bot sites
+- `search_analytics` - Analyze search trends and domain distribution across multiple queries
+- `multi_site_search` - Search across multiple specific domains simultaneously
+- `news_monitor` - Live news monitor using Google News public RSS feeds (zero keys required)
+- `academic_search` - Search academic papers and preprints via arXiv OpenSearch API (zero keys required)
+- `content_summarizer` - Multi-URL content extractor and summarizer with Jina reader fallback
+- `fact_checker` - Verify claims by searching and cross-referencing verification sources
+- `research_assistant` - Comprehensive multi-angle research assistant
+- `search_trends` - Track search and community interest trends with Hacker News Algolia integration
+- `research_brief` - Fast multi-source brief: parallel Google/web + Wikipedia fan-out, cross-source dedup, exact-match ranking
 
 ### Wikipedia Tools (10 tools)
 
@@ -296,11 +297,13 @@ For global configuration (`~/.cursor/mcp.json`), replace `${workspaceFolder}` wi
 
 Wikipedia `search`/`getPage`/`getPageSummary` results carry a `Sources:` footer (canonical page URI, `retrieved_at`, confidence, freshness) so downstream consumers can cite provenance.
 
-**Keyless search (no API keys).** The modular server (`node dist/src/index.js`) always registers `free_search`: parallel fan-out over Mojeek + DuckDuckGo + Yep + Bing HTML, URL-deduped, per-engine failures reported as coverage instead of failing the call. Live-tested: DuckDuckGo + Bing answer reliably; Mojeek (Captcha) and Yep (403) bot-block datacenter IPs but stay registered as best-effort for friendlier networks. `extract_content` falls back to the keyless Jina reader when Google keys are unset.
-
-**Global `search` (no API keys).** The modular server's bare `search` tool fans out to Google (when keys are set) plus the keyless engines in parallel, dedupes by URL (Google hits first), and always carries a `Sources:` footer. A Google failure degrades to keyless results instead of failing the call. In the combined server the Wikipedia keyword tool keeps working as `wikipedia_search`.
-
-*Google Search is optional - the server works with Wikipedia-only functionality
+**Zero-Key Out of the Box (No API Keys Required).** All 29 tools function completely free without requiring `GOOGLE_API_KEY` or `GOOGLE_CSE_ID`:
+- **Dual-Tier Web Search**: If Google API keys are unset or exhaust daily quotas, the server transparently falls back to parallel keyless search (DuckDuckGo + Bing + Mojeek + Yep) with secondary Wikipedia encyclopedic fallback.
+- **Native Academic Search**: `academic_search` queries arXiv's public OpenSearch API (`export.arxiv.org`), extracting paper titles, authors, summaries, arXiv links, and primary categories.
+- **Live News Monitor**: `news_monitor` queries Google News public RSS feeds (`news.google.com/rss/search`), delivering real-time headlines, source publishers, and timestamps.
+- **Community & Tech Trends**: `search_trends` queries Hacker News Algolia search API in real-time alongside web queries, tracking community upvote points and comment velocity.
+- **Resilient Content Extraction**: `extract_content` and `content_summarizer` fall back to Jina Reader (`r.jina.ai/{url}`) when direct page scraping fails due to anti-bot protection or empty JavaScript SPA shells.
+- **Cached Search Resource**: `google://search/{query}` serves cached search results or executes keyless search without throwing configuration errors.
 
 ### Google API Setup
 
@@ -338,9 +341,9 @@ npm run build
 
 Then configure in your MCP client using the production configuration above.
 
-## Available Tools
+## Available Tools (29 total)
 
-The server provides the following comprehensive research tools:
+The server provides the following 29 comprehensive research tools (all available zero-key out of the box):
 
 ### Enhanced Analysis Tools (8 total - No API Keys Required)
 
@@ -353,19 +356,19 @@ The server provides the following comprehensive research tools:
 - `archive_org_search` - Search archived web pages on Archive.org (Wayback Machine)
 - `data_export` - Export research data in various formats (JSON, CSV, Markdown)
 
-### Google Search Tools (10 total)
+### Web & Academic Search Tools (11 total - Dual-Tier & Zero-Key Fallback)
 
-- `google_search` - Search the web using Google Custom Search API
-- `extract_content` - Extract main content from web pages
-- `search_analytics` - Analyze search trends and get insights from multiple search queries
+- `google_search` - Search the web with Google Custom Search API or keyless parallel fallback
+- `extract_content` - Extract main content from web pages (with automatic Jina Reader fallback)
+- `search_analytics` - Analyze search trends and get domain distribution insights
 - `multi_site_search` - Search across multiple specific websites simultaneously
-- `news_monitor` - Monitor news and get alerts for specific topics
-- `academic_search` - Search academic papers and research documents
-- `content_summarizer` - Summarize content from multiple URLs
-- `fact_checker` - Verify claims by searching for fact-checking sources
+- `news_monitor` - Real-time news monitor via Google News public RSS feeds
+- `academic_search` - Search academic papers via arXiv OpenSearch API
+- `content_summarizer` - Summarize content from multiple URLs with Jina reader fallback
+- `fact_checker` - Verify claims by searching and cross-referencing verification sources
 - `research_assistant` - Comprehensive research assistant with multi-query analysis
-- `search_trends` - Track and analyze search interest trends over time
-- `research_brief` - One-call brief: parallel Google + Wikipedia fan-out, cross-source dedup, exact-match ranking, freshness stamps (replaces manual chaining)
+- `search_trends` - Track search interest trends and Hacker News community metrics
+- `research_brief` - One-call brief: parallel Google/web + Wikipedia fan-out, cross-source dedup, exact-match ranking
 
 ### Wikipedia Tools (10 total)
 
@@ -403,7 +406,7 @@ The Research MCP Server is built with a modular, professional architecture desig
 
 ### Technology Stack
 
-- Runtime: Node.js ≥18.0.0 with ES modules
+- Runtime: Node.js ≥20.18.1 with ES modules
 - Language: TypeScript for type safety
 - HTTP Client: Axios with retry logic for reliable API interactions
 - Web Scraping: Cheerio for HTML content extraction and parsing
@@ -468,7 +471,7 @@ The Research MCP Server implements error handling strategies to ensure reliable 
 
 ### Prerequisites
 
-- Node.js ≥18.0.0
+- Node.js ≥20.18.1
 - npm or yarn package manager
 - TypeScript compiler
 - Google Custom Search API (optional)

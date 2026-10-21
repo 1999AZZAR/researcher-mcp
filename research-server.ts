@@ -12,6 +12,13 @@ import * as cheerio from 'cheerio';
 import LRUCache from 'lru-cache';
 import Sentiment from 'sentiment';
 import { Prompt, GetPromptRequestSchema, ListPromptsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  freeSearch,
+  freeExtract,
+  arxivSearch,
+  googleNewsSearch,
+  hackerNewsSearch,
+} from './src/freeSearchService.js';
 
 // Research Prompt Definitions - Rich Library for Research Workflows
 export const researchPrompts: Prompt[] = [
@@ -1195,23 +1202,68 @@ export default class ResearchMCPServer {
 
     this.googleSearch = {
       search: async (params: any) => {
-        if (!config.google.apiKey || !config.google.cseId) {
-          throw new Error('Google Search not configured');
-        }
         const cacheKey = `google:${JSON.stringify(params)}`;
         let result = this.googleCache.get(cacheKey);
         if (result) return result;
 
-        const url = `https://www.googleapis.com/customsearch/v1`;
-        const response = await axios.get(url, {
-          params: {
-            key: config.google.apiKey,
-            cx: config.google.cseId,
-            ...params,
-          },
-          timeout: 10000,
+        if (config.google.apiKey && config.google.cseId) {
+          try {
+            const url = `https://www.googleapis.com/customsearch/v1`;
+            const response = await axios.get(url, {
+              params: {
+                key: config.google.apiKey,
+                cx: config.google.cseId,
+                ...params,
+              },
+              timeout: 10000,
+            });
+            result = response.data;
+            this.googleCache.set(cacheKey, result);
+            return result;
+          } catch {
+            // Google CSE quota or network failed — fall through to freeSearch
+          }
+        }
+
+        const q = String(params?.q || '');
+        const num = Number(params?.num || 10);
+        const freeRes = await freeSearch(q, { maxResults: num });
+        const items = freeRes.items.map((item) => {
+          let displayLink = item.engine || 'web';
+          try {
+            displayLink = new URL(item.link).hostname;
+          } catch {}
+          return {
+            title: item.title,
+            link: item.link,
+            snippet: item.snippet,
+            displayLink,
+          };
         });
-        result = response.data;
+
+        if (items.length === 0 && q.trim()) {
+          try {
+            const wikiRes = await this.wikipedia.search(q, { limit: num });
+            const wikiItems = wikiRes?.query?.search || [];
+            for (const w of wikiItems) {
+              items.push({
+                title: w.title,
+                link: `https://${config.wikipedia.defaultLang}.wikipedia.org/wiki/${encodeURIComponent(String(w.title).replace(/ /g, '_'))}`,
+                snippet: (w.snippet || '').replace(/<[^>]+>/g, ''),
+                displayLink: `${config.wikipedia.defaultLang}.wikipedia.org`,
+              });
+            }
+          } catch {}
+        }
+
+        result = {
+          items,
+          searchInformation: {
+            totalResults: String(items.length),
+            searchTime: 0.1,
+          },
+          provider: 'keyless',
+        };
         this.googleCache.set(cacheKey, result);
         return result;
       }
@@ -8834,54 +8886,25 @@ Develop and execute a strategic research networking approach to build valuable c
 
       try {
         switch (name) {
-          case 'google_search':
-            if (!config.google.apiKey || !config.google.cseId) {
-              return {
-                content: [{ type: 'text', text: 'Google Search not configured. Set GOOGLE_API_KEY and GOOGLE_CSE_ID environment variables.' }],
-              };
-            }
-
+          case 'google_search': {
             const { q } = args as any;
             const num = clampInt((args as any).num, 5, 1, 10);
-            const cacheKey = `google:${q}:${num}`;
-            let data = googleCache.get(cacheKey);
-            if (!data) {
-              try {
-                const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-                  params: {
-                    key: config.google.apiKey,
-                    cx: config.google.cseId,
-                    q,
-                    num,
-                  },
-                  timeout: 10000,
-                });
-                data = response.data;
-                googleCache.set(cacheKey, data);
-              } catch (error) {
-                if (isQuotaError(error)) {
-                  try {
-                    const fb = await this.wikipedia.search(q, { limit: num });
-                    const fbItems = fb?.query?.search || [];
-                    return {
-                      content: [{ type: 'text', text: `Google search degraded (quota) — Wikipedia fallback for "${q}" (retrievedAt: ${new Date().toISOString()}):\n\n${fbItems.map((r: any) => `- **${r.title}**: ${(r.snippet || '').replace(/<[^>]+>/g, '')}`).join('\n') || 'No fallback results.'}` }],
-                    };
-                  } catch { /* fall through to hard error */ }
-                }
-                return {
-                  content: [{ type: 'text', text: `Google search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-                };
-              }
+            try {
+              const data = await this.googleSearch.search({ q, num });
+              const items = data.items || [];
+              const results = items.map((item: any, index: number) =>
+                `${index + 1}. **${item.title}**\n   ${item.snippet}\n   ${item.link}`
+              ).join('\n\n');
+
+              return {
+                content: [{ type: 'text', text: `Found ${items.length} results for "${q}":\n\n${results || 'No results found.'}` }],
+              };
+            } catch (error) {
+              return {
+                content: [{ type: 'text', text: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
+              };
             }
-
-            const items = data.items || [];
-            const results = items.map((item: any, index: number) =>
-              `${index + 1}. **${item.title}**\n   ${item.snippet}\n   ${item.link}`
-            ).join('\n\n');
-
-            return {
-              content: [{ type: 'text', text: `Found ${items.length} results for "${q}":\n\n${results}` }],
-            };
+          }
 
           case 'wikipedia_search':
             const { query } = args as any;
@@ -8960,54 +8983,67 @@ Develop and execute a strategic research networking approach to build valuable c
               content: [{ type: 'text', text: `**${parsedPage.title}**\n\n${cleanContent}...` }],
             };
 
-          case 'extract_content':
+          case 'extract_content': {
             const { url } = args as any;
             try {
-              const response = await axios.get(url, {
-                timeout: 10000,
-                headers: { 'User-Agent': config.userAgent },
-              });
-
-              const $ = cheerio.load(response.data);
-
-              // Remove unwanted elements
-              $('script, style, nav, header, footer, aside, .ad, .advertisement').remove();
-
-              const pageTitle = $('title').text().trim() ||
-                           $('h1').first().text().trim() ||
-                           'No title found';
-
-              // Try to find main content
+              let pageTitle = '';
               let pageContent = '';
-              const selectors = ['main', 'article', '.content', '.post', '.entry', '#content', '#main'];
-              for (const selector of selectors) {
-                const element = $(selector);
-                if (element.length > 0) {
-                  pageContent = element.text().trim();
-                  break;
-                }
-              }
-              if (!pageContent) pageContent = $('body').text().trim();
+              try {
+                const response = await axios.get(url, {
+                  timeout: 10000,
+                  headers: { 'User-Agent': config.userAgent },
+                });
 
-              // Clean and limit content
-              pageContent = pageContent.replace(/\s+/g, ' ').trim();
+                const $ = cheerio.load(response.data);
+                $('script, style, nav, header, footer, aside, .ad, .advertisement').remove();
+
+                pageTitle = $('title').text().trim() ||
+                             $('h1').first().text().trim() ||
+                             '';
+
+                const selectors = ['main', 'article', '.content', '.post', '.entry', '#content', '#main'];
+                for (const selector of selectors) {
+                  const element = $(selector);
+                  if (element.length > 0) {
+                    pageContent = element.text().trim();
+                    break;
+                  }
+                }
+                if (!pageContent) pageContent = $('body').text().trim();
+                pageContent = pageContent.replace(/\s+/g, ' ').trim();
+              } catch {
+                // Direct fetch failed, will try freeExtract below
+              }
+
+              if (!pageContent || pageContent.length < 60) {
+                try {
+                  const extracted = await freeExtract(url);
+                  if (extracted.content) {
+                    pageTitle = extracted.title || pageTitle || url;
+                    pageContent = extracted.content;
+                  }
+                } catch {}
+              }
+
               if (pageContent.length > 3000) pageContent = pageContent.substring(0, 3000) + '...';
 
+              if (!pageContent) {
+                return {
+                  content: [{ type: 'text', text: `Content extraction failed: Unable to extract content from ${url}` }],
+                };
+              }
+
               return {
-                content: [{ type: 'text', text: `**${pageTitle}**\n\n${pageContent}` }],
+                content: [{ type: 'text', text: `**${pageTitle || 'Extracted Content'}**\n\n${pageContent}` }],
               };
             } catch (error) {
               return {
                 content: [{ type: 'text', text: `Content extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }
+          }
 
-          case 'search_analytics':
-            if (!config.google.apiKey || !config.google.cseId) {
-              return {
-                content: [{ type: 'text', text: 'Google Search not configured. Set GOOGLE_API_KEY and GOOGLE_CSE_ID environment variables.' }],
-              };
-            }
+          case 'search_analytics': {
             const { queries: analyticsQueries, timeRange = 'month', maxResults: analyticsMaxRaw = 3 } = args as any;
             const analyticsMax = clampInt(analyticsMaxRaw, 3, 1, 5);
             try {
@@ -9039,13 +9075,9 @@ Develop and execute a strategic research networking approach to build valuable c
                 content: [{ type: 'text', text: `Search analytics failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }
+          }
 
-          case 'multi_site_search':
-            if (!config.google.apiKey || !config.google.cseId) {
-              return {
-                content: [{ type: 'text', text: 'Google Search not configured. Set GOOGLE_API_KEY and GOOGLE_CSE_ID environment variables.' }],
-              };
-            }
+          case 'multi_site_search': {
             const { query: multiQuery, sites: multiSites, maxResults: multiMaxRaw = 3, fileType: multiFileType } = args as any;
             const multiMax = clampInt(multiMaxRaw, 3, 1, 5);
             try {
@@ -9070,17 +9102,29 @@ Develop and execute a strategic research networking approach to build valuable c
                 content: [{ type: 'text', text: `Multi-site search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }
+          }
 
-          case 'academic_search':
-            if (!config.google.apiKey || !config.google.cseId) {
-              return {
-                content: [{ type: 'text', text: 'Google Search not configured. Set GOOGLE_API_KEY and GOOGLE_CSE_ID environment variables.' }],
-              };
-            }
-            const { query: academicQuery, fileType: academicFileType, dateRange: academicDateRange, sites: academicSites, maxResults: academicMaxRaw = 5 } = args as any;
+          case 'academic_search': {
+            const { query: academicQuery, fileType: academicFileType, dateRange: academicDateRange, sites: academicSites = [], maxResults: academicMaxRaw = 5 } = args as any;
             const academicMax = clampInt(academicMaxRaw, 5, 1, 10);
             try {
-              const siteSearch = academicSites.join(' OR site:');
+              const papers = await arxivSearch(academicQuery, academicMax);
+              if (papers.length > 0) {
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `Found ${papers.length} academic papers on arXiv for "${academicQuery}":\n\n${papers.map((p, index) =>
+                      `${index + 1}. **${p.title}** (${p.published ? p.published.slice(0, 10) : 'Recent'})\n` +
+                      `   Authors: ${p.authors.join(', ') || 'Unknown'}\n` +
+                      `   ${p.summary ? p.summary.slice(0, 300) + '...' : ''}\n` +
+                      `   ${p.link}`
+                    ).join('\n\n')}`,
+                  }],
+                };
+              }
+
+              const sitesList = academicSites.length > 0 ? academicSites : ['arxiv.org', 'biorxiv.org', 'nature.com', 'sciencedirect.com', 'ieee.org'];
+              const siteSearch = sitesList.join(' OR site:');
               const results = await this.googleSearch.search({
                 q: `${academicQuery} site:${siteSearch}`,
                 fileType: academicFileType,
@@ -9101,16 +9145,28 @@ Develop and execute a strategic research networking approach to build valuable c
                 content: [{ type: 'text', text: `Academic search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }
+          }
 
-          case 'news_monitor':
-            if (!config.google.apiKey || !config.google.cseId) {
-              return {
-                content: [{ type: 'text', text: 'Google Search not configured. Set GOOGLE_API_KEY and GOOGLE_CSE_ID environment variables.' }],
-              };
-            }
+          case 'news_monitor': {
             const { topic, sources = [], language = 'en', country = 'us', maxResults: newsMaxRaw = 5, dateRestrict: newsDate = 'd7' } = args as any;
             const newsMax = clampInt(newsMaxRaw, 5, 1, 10);
             try {
+              const articles = await googleNewsSearch(topic, {
+                language,
+                country: country.toUpperCase(),
+                maxResults: newsMax,
+              });
+              if (articles.length > 0) {
+                return {
+                  content: [{
+                    type: 'text',
+                    text: `Found ${articles.length} news articles about "${topic}":\n\n${articles.map((item, index) =>
+                      `${index + 1}. **${item.title}**\n   ${item.snippet || ''}\n   ${item.link}\n   Source: ${item.source} (${item.pubDate})\n`
+                    ).join('\n')}`,
+                  }],
+                };
+              }
+
               const newsSites = sources.length > 0 ? sources : ['bbc.com', 'cnn.com', 'reuters.com', 'apnews.com', 'nytimes.com'];
               const siteSearch = newsSites.join(' OR site:');
               const results = await this.googleSearch.search({
@@ -9134,24 +9190,43 @@ Develop and execute a strategic research networking approach to build valuable c
                 content: [{ type: 'text', text: `News search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }
+          }
 
-          case 'content_summarizer':
+          case 'content_summarizer': {
             const { urls, maxLength: maxLengthRaw = 200 } = args as any;
             const maxLength = clampInt(maxLengthRaw, 200, 50, 2000);
             try {
               const summaries = await mapAll(urls.slice(0, 5), 3, async (url: string) => {
                 try {
-                  const response = await axios.get(url, {
-                    timeout: 8000,
-                    headers: { 'User-Agent': config.userAgent },
-                  });
-                  const $ = cheerio.load(response.data);
-                  $('script, style, nav, header, footer, aside, .ad, .advertisement').remove();
+                  let title = '';
+                  let content = '';
+                  try {
+                    const response = await axios.get(url, {
+                      timeout: 8000,
+                      headers: { 'User-Agent': config.userAgent },
+                    });
+                    const $ = cheerio.load(response.data);
+                    $('script, style, nav, header, footer, aside, .ad, .advertisement').remove();
 
-                  const title = $('title').text().trim() || 'No title';
-                  let content = $('body').text().trim();
-                  content = content.replace(/\s+/g, ' ').substring(0, maxLength * 2);
+                    title = $('title').text().trim() || 'No title';
+                    content = $('body').text().trim().replace(/\s+/g, ' ');
+                  } catch {
+                    // Direct fetch failed, fall back to freeExtract
+                  }
 
+                  if (!content || content.length < 60) {
+                    try {
+                      const extracted = await freeExtract(url);
+                      if (extracted.content) {
+                        title = extracted.title || title || 'Summary';
+                        content = extracted.content;
+                      }
+                    } catch {}
+                  }
+
+                  if (!content) return { url, error: 'Failed to extract content' };
+
+                  content = content.substring(0, maxLength * 2);
                   return { url, title, summary: content.substring(0, maxLength) + '...' };
                 } catch (error) {
                   return { url, error: 'Failed to extract content' };
@@ -9173,6 +9248,7 @@ Develop and execute a strategic research networking approach to build valuable c
                 content: [{ type: 'text', text: `Content summarization failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }
+          }
 
           case 'fact_checker':
             const { claim } = args as any;
@@ -9250,10 +9326,7 @@ Develop and execute a strategic research networking approach to build valuable c
             const retrievedAt = new Date().toISOString();
             const norm = normalizeTitle(briefQuery);
             const [g, w] = await Promise.allSettled([
-              (async () => {
-                if (!config.google.apiKey || !config.google.cseId) throw new Error('Google not configured');
-                return this.googleSearch.search({ q: briefQuery, num: n });
-              })(),
+              this.googleSearch.search({ q: briefQuery, num: n }),
               this.wikipedia.search(briefQuery, { lang: briefLang, limit: n }),
             ]);
             const googleItems = g.status === 'fulfilled' ? (g.value.items || []) : [];
@@ -9295,36 +9368,47 @@ Develop and execute a strategic research networking approach to build valuable c
             };
           }
 
-          case 'search_trends':
+          case 'search_trends': {
             const { topics, timeframe = '6M' } = args as any;
             try {
-              // Note: This is a simplified version since we don't have access to Google Trends API
-              // In a real implementation, this would use Google Trends API
               const trendsResults = await mapAll(topics.slice(0, 3), 3, async (topic: string) => {
-                const searchResult = await this.googleSearch.search({
-                  q: `${topic} trend OR trending`,
-                  dateRestrict: 'm1', // Last month
-                  num: 3,
-                });
+                const [searchResult, hnItems] = await Promise.all([
+                  this.googleSearch.search({
+                    q: `${topic} trend OR trending`,
+                    dateRestrict: 'm1',
+                    num: 3,
+                  }).catch(() => ({ items: [] })),
+                  hackerNewsSearch(topic, 3).catch(() => []),
+                ]);
+
+                const webSources = (searchResult.items || []).slice(0, 3).map((item: any) => ({
+                  title: item.title,
+                  source: item.displayLink || 'web',
+                  date: item.snippet?.match(/\d{1,2} \w+ \d{4}/)?.[0] || 'Recent',
+                }));
+
+                const hnSources = hnItems.map((hn) => ({
+                  title: `${hn.title} (${hn.points} pts, ${hn.comments} comments)`,
+                  source: 'news.ycombinator.com',
+                  date: hn.createdAt ? hn.createdAt.slice(0, 10) : 'Recent',
+                }));
+
+                const allSources = [...webSources, ...hnSources];
 
                 return {
                   topic,
                   timeframe,
-                  recentActivity: searchResult.items?.length || 0,
-                  topSources: searchResult.items?.slice(0, 3).map((item: any) => ({
-                    title: item.title,
-                    source: item.displayLink,
-                    date: item.snippet.match(/\d{1,2} \w+ \d{4}/)?.[0] || 'Recent',
-                  })) || [],
+                  recentActivity: allSources.length,
+                  topSources: allSources,
                 };
               });
 
               return {
                 content: [{
                   type: 'text',
-                  text: `Search Trends Analysis (${timeframe}):\n\n${trendsResults.map((trend, index) =>
+                  text: `Search Trends Analysis (${timeframe}):\n\n${trendsResults.map((trend) =>
                     `**${trend.topic}**\n` +
-                    `Recent activity: ${trend.recentActivity} mentions\n` +
+                    `Recent activity: ${trend.recentActivity} mentions / discussions\n` +
                     `Top sources:\n${trend.topSources.map((source: any) =>
                       `• ${source.title} (${source.source}) - ${source.date}`
                     ).join('\n')}`
@@ -9336,6 +9420,7 @@ Develop and execute a strategic research networking approach to build valuable c
                 content: [{ type: 'text', text: `Search trends failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }
+          }
 
           case 'wikipedia_get_page_by_id':
             const { id, lang: idLang = 'en' } = args as any;
@@ -9839,34 +9924,15 @@ Develop and execute a strategic research networking approach to build valuable c
           let data = googleCache.get(cacheKey);
 
           if (!data) {
-            if (!config.google.apiKey || !config.google.cseId) {
-              return {
-                contents: [{
-                  uri,
-                  mimeType: 'application/json',
-                  text: JSON.stringify({ error: 'Google Search not configured' }),
-                }],
-              };
-            }
-
             try {
-              const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-                params: {
-                  key: config.google.apiKey,
-                  cx: config.google.cseId,
-                  q: query,
-                  num: 5,
-                },
-                timeout: 10000,
-              });
-              data = response.data;
+              data = await this.googleSearch.search({ q: query, num: 5 });
               googleCache.set(cacheKey, data);
             } catch (error) {
               return {
                 contents: [{
                   uri,
                   mimeType: 'application/json',
-                  text: JSON.stringify({ error: `Failed to search Google: ${error instanceof Error ? error.message : 'Unknown error'}` }),
+                  text: JSON.stringify({ error: `Failed to search: ${error instanceof Error ? error.message : 'Unknown error'}` }),
                 }],
               };
             }
@@ -9952,9 +10018,9 @@ Develop and execute a strategic research networking approach to build valuable c
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
 
-    const googleStatus = config.google.apiKey && config.google.cseId ? 'enabled' : 'disabled';
+    const googleStatus = config.google.apiKey && config.google.cseId ? 'custom search' : 'keyless fallback active';
     console.error(`Research MCP Server started successfully`);
-    console.error(`Google Search: ${googleStatus}`);
+    console.error(`Web Search: ${googleStatus}`);
     console.error(`Wikipedia: enabled (lang: ${config.wikipedia.defaultLang})`);
   }
 }

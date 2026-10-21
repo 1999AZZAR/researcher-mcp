@@ -4,6 +4,9 @@ import {
   freeExtract,
   unwrapUrl,
   listFreeEngines,
+  arxivSearch,
+  googleNewsSearch,
+  hackerNewsSearch,
 } from "../freeSearchService.js";
 
 jest.mock("axios");
@@ -62,13 +65,82 @@ describe("freeSearchService", () => {
     );
   });
 
-  test("freeExtract returns word count via jina reader", async () => {
-    mockedAxios.get.mockResolvedValue({ data: "hello world foo bar" });
+  test("freeExtract returns word count and extracted title via jina reader", async () => {
+    mockedAxios.get.mockResolvedValue({ data: "Title: Test Page Title\n\nhello world foo bar" });
     const a = await freeExtract("https://example.com/x");
-    expect(a.wordCount).toBe(4);
+    expect(a.title).toBe("Test Page Title");
+    expect(a.wordCount).toBe(8);
     expect(mockedAxios.get).toHaveBeenCalledWith(
       "https://r.jina.ai/https://example.com/x",
       expect.anything()
     );
+  });
+
+  test("arxivSearch parses Atom XML feed", async () => {
+    const mockXml = `<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <id>http://arxiv.org/abs/2301.00001</id>
+    <title>Quantum Transformers in Deep Learning</title>
+    <summary>A study on quantum transformer architectures.</summary>
+    <published>2023-01-01T00:00:00Z</published>
+    <author><name>Alice Smith</name></author>
+    <author><name>Bob Jones</name></author>
+    <category term="cs.AI"/>
+  </entry>
+</feed>`;
+    mockedAxios.get.mockResolvedValue({ data: mockXml });
+
+    const papers = await arxivSearch("quantum transformers", 5);
+    expect(papers).toHaveLength(1);
+    expect(papers[0].title).toBe("Quantum Transformers in Deep Learning");
+    expect(papers[0].authors).toEqual(["Alice Smith", "Bob Jones"]);
+    expect(papers[0].link).toBe("http://arxiv.org/abs/2301.00001");
+    expect(papers[0].category).toBe("cs.AI");
+  });
+
+  test("googleNewsSearch parses RSS feed", async () => {
+    const mockRss = `<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Breakthrough in Fusion Energy Announced</title>
+      <link>https://news.example.com/fusion-breakthrough</link>
+      <pubDate>Wed, 21 Oct 2026 12:00:00 GMT</pubDate>
+      <source url="https://reuters.com">Reuters</source>
+      <description>&lt;p&gt;Scientists achieve net positive energy gain in fusion reactor.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>`;
+    mockedAxios.get.mockResolvedValue({ data: mockRss });
+
+    const articles = await googleNewsSearch("fusion energy", { maxResults: 5 });
+    expect(articles).toHaveLength(1);
+    expect(articles[0].title).toBe("Breakthrough in Fusion Energy Announced");
+    expect(articles[0].source).toBe("Reuters");
+    expect(articles[0].snippet).toContain("Scientists achieve net positive energy gain");
+  });
+
+  test("hackerNewsSearch parses Algolia response", async () => {
+    mockedAxios.get.mockResolvedValue({
+      data: {
+        hits: [
+          {
+            title: "Show HN: Modern Zero-Key Search Engine",
+            url: "https://github.com/example/engine",
+            points: 245,
+            num_comments: 88,
+            created_at: "2026-10-21T10:00:00Z",
+            objectID: "123456",
+          },
+        ],
+      },
+    });
+
+    const trends = await hackerNewsSearch("search engine", 5);
+    expect(trends).toHaveLength(1);
+    expect(trends[0].title).toBe("Show HN: Modern Zero-Key Search Engine");
+    expect(trends[0].points).toBe(245);
+    expect(trends[0].comments).toBe(88);
   });
 });

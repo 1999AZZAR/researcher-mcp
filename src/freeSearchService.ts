@@ -8,6 +8,31 @@ export interface FreeSearchItem {
   engine: string;
 }
 
+export interface ArxivPaper {
+  title: string;
+  link: string;
+  summary: string;
+  authors: string[];
+  published: string;
+  category?: string;
+}
+
+export interface NewsItem {
+  title: string;
+  link: string;
+  snippet?: string;
+  source: string;
+  pubDate: string;
+}
+
+export interface TechTrendItem {
+  title: string;
+  url: string;
+  points: number;
+  comments: number;
+  createdAt: string;
+}
+
 const UA =
   process.env.RESEARCHER_USER_AGENT ?? "hela-enzyme/1.0 (researcher-mcp; keyless)";
 const ENGINE_TIMEOUT_MS = 8000;
@@ -184,10 +209,136 @@ export async function freeExtract(url: string): Promise<{
     headers,
     responseType: "text",
   });
-  const content = clean(String(res.data)).slice(0, 10000);
+  const raw = String(res.data || "");
+  const titleMatch = raw.match(/^Title:\s*(.+)$/m);
+  const title = titleMatch ? clean(titleMatch[1]) : url;
+  const content = clean(raw).slice(0, 10000);
   return {
-    title: url,
+    title,
     content,
     wordCount: content.split(/\s+/).filter(Boolean).length,
   };
+}
+
+/**
+ * Free academic search via arXiv's public OpenSearch API (zero keys required).
+ */
+export async function arxivSearch(
+  query: string,
+  maxResults = 5
+): Promise<ArxivPaper[]> {
+  try {
+    const url = "https://export.arxiv.org/api/query";
+    const res = await axios.get<string>(url, {
+      params: {
+        search_query: `all:${query}`,
+        start: 0,
+        max_results: maxResults,
+      },
+      headers: { "User-Agent": UA },
+      timeout: 10000,
+      responseType: "text",
+    });
+    const $ = cheerio.load(res.data, { xmlMode: true });
+    const papers: ArxivPaper[] = [];
+    $("entry").each((_, el) => {
+      if (papers.length >= maxResults) return;
+      const title = clean($(el).find("title").text());
+      const summary = clean($(el).find("summary").text());
+      const link =
+        clean($(el).find("id").text()) ||
+        clean($(el).find("link[rel='alternate']").attr("href") ?? "");
+      const published = clean($(el).find("published").text());
+      const category = $(el).find("category").attr("term") || undefined;
+      const authors: string[] = [];
+      $(el)
+        .find("author name")
+        .each((_, a) => {
+          const name = clean($(a).text());
+          if (name) authors.push(name);
+        });
+      if (title && link) {
+        papers.push({ title, link, summary, authors, published, category });
+      }
+    });
+    return papers;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Free news search via Google News public RSS feeds (zero keys required).
+ */
+export async function googleNewsSearch(
+  topic: string,
+  opts: { language?: string; country?: string; maxResults?: number } = {}
+): Promise<NewsItem[]> {
+  try {
+    const lang = opts.language || "en-US";
+    const gl = opts.country || "US";
+    const limit = opts.maxResults || 5;
+    const url = "https://news.google.com/rss/search";
+    const res = await axios.get<string>(url, {
+      params: {
+        q: topic,
+        hl: lang,
+        gl,
+        ceid: `${gl}:${lang.split("-")[0]}`,
+      },
+      headers: { "User-Agent": UA },
+      timeout: 10000,
+      responseType: "text",
+    });
+    const $ = cheerio.load(res.data, { xmlMode: true });
+    const articles: NewsItem[] = [];
+    $("item").each((_, el) => {
+      if (articles.length >= limit) return;
+      const title = clean($(el).find("title").text());
+      const link = clean($(el).find("link").text());
+      const pubDate = clean($(el).find("pubDate").text());
+      const source = clean($(el).find("source").text()) || "News";
+      const snippet = clean($(el).find("description").text()).replace(/<[^>]+>/g, "");
+      if (title && link) {
+        articles.push({ title, link, pubDate, source, snippet });
+      }
+    });
+    return articles;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Free tech trend / community discussion search via Hacker News Algolia API.
+ */
+export async function hackerNewsSearch(
+  query: string,
+  maxResults = 5
+): Promise<TechTrendItem[]> {
+  try {
+    const url = "https://hn.algolia.com/api/v1/search";
+    const res = await axios.get<{ hits: any[] }>(url, {
+      params: {
+        query,
+        tags: "story",
+        hitsPerPage: maxResults,
+      },
+      headers: { "User-Agent": UA },
+      timeout: 10000,
+    });
+    const hits = res.data?.hits || [];
+    return hits
+      .slice(0, maxResults)
+      .map((h) => ({
+        title: clean(h.title || h.story_title || ""),
+        url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+        points: Number(h.points || 0),
+        comments: Number(h.num_comments || 0),
+        createdAt: h.created_at || "",
+      }))
+      .filter((item) => Boolean(item.title));
+  } catch {
+    return [];
+  }
 }
