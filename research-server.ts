@@ -1232,7 +1232,9 @@ export default class ResearchMCPServer {
           let displayLink = item.engine || 'web';
           try {
             displayLink = new URL(item.link).hostname;
-          } catch {}
+          } catch {
+            /* URL parsing failed, keep fallback displayLink */
+          }
           return {
             title: item.title,
             link: item.link,
@@ -1253,7 +1255,9 @@ export default class ResearchMCPServer {
                 displayLink: `${config.wikipedia.defaultLang}.wikipedia.org`,
               });
             }
-          } catch {}
+          } catch {
+            /* Wikipedia fallback failed, return web items */
+          }
         }
 
         result = {
@@ -9022,7 +9026,9 @@ Develop and execute a strategic research networking approach to build valuable c
                     pageTitle = extracted.title || pageTitle || url;
                     pageContent = extracted.content;
                   }
-                } catch {}
+                } catch {
+                  /* Free extraction fallback failed */
+                }
               }
 
               if (pageContent.length > 3000) pageContent = pageContent.substring(0, 3000) + '...';
@@ -9221,7 +9227,9 @@ Develop and execute a strategic research networking approach to build valuable c
                         title = extracted.title || title || 'Summary';
                         content = extracted.content;
                       }
-                    } catch {}
+                    } catch {
+                      /* Jina extraction fallback failed */
+                    }
                   }
 
                   if (!content) return { url, error: 'Failed to extract content' };
