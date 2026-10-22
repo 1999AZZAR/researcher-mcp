@@ -170,7 +170,7 @@ export function createCombinedMcp(
       {
         title: "Extract Content",
         description:
-          "Canonical content extraction: fetch a URL and extract its main content via HTTP/Readability (keyless Jina reader fallback; set JINA_API_KEY for higher quota). Use browser_get_page_markdown only when client-side JavaScript is required.",
+          "Canonical content extraction: fetch a URL and extract its main content via HTTP/Readability (keyless Jina reader fallback; set JINA_API_KEY for higher quota). Use hela-cytosol browser_get_content (format=markdown) only when client-side JavaScript is required.",
         inputSchema: {
           url: z.string().describe("The URL to extract."),
         },
@@ -298,7 +298,7 @@ export function createCombinedMcp(
     "extract_content",
     {
       title: "Extract Content",
-      description: "Canonical content extraction: fetch a URL and extract/analyze its main content via HTTP/Readability. Use browser_get_page_markdown only when client-side JavaScript is required.",
+      description: "Canonical content extraction: fetch a URL and extract/analyze its main content via HTTP/Readability. Use hela-cytosol browser_get_content (format=markdown) only when client-side JavaScript is required.",
       inputSchema: {
         url: z.string().describe("The URL to extract."),
       },

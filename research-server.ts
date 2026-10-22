@@ -725,7 +725,7 @@ const tools = [
   },
   {
     name: 'extract_content',
-    description: 'Canonical content extraction: fetch a URL and extract its main content. Use browser_get_page_markdown only when client-side JavaScript is required.',
+    description: 'Canonical content extraction: fetch a URL and extract its main content. Use hela-cytosol browser_get_content (format=markdown) only when client-side JavaScript is required.',
     inputSchema: {
       type: 'object',
       properties: {
