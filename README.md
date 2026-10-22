@@ -6,13 +6,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.18.1-brightgreen)](https://nodejs.org/)
 
-A Model Context Protocol (MCP) server that combines Google Custom Search, public academic/news APIs, and Wikipedia functionality for deep research and information retrieval. The server provides 29 tools, 23 resources, and 22 research prompts with **full zero-key fallback out of the box** — no paid API keys required.
+A Model Context Protocol (MCP) server that combines Google Custom Search, public academic/news APIs, and Wikipedia functionality for deep research and information retrieval. The server provides 24 tools, 23 resources, and 22 research prompts with **full zero-key fallback out of the box** — no paid API keys required.
 
 ![Blotcat operating a crane pulling Google Search and Wikipedia blocks into a Research MCP funnel](assets/blotcat-hero.jpg)
 
 ## Features
 
-- 29 tools: Web & Academic Search (11), Wikipedia (10), and enhanced analysis (8) — **100% Zero-Key out of the box**
+- 24 tools: Web & Academic Search (11), Wikipedia (5), and enhanced analysis (8) — **100% Zero-Key out of the box**
 - 23 resources: Templates, guides, and cached research data
 - 22 prompts: Structured prompts covering research methodologies
 - 8 analysis tools that work without requiring additional API keys
@@ -58,7 +58,7 @@ A Model Context Protocol (MCP) server that combines Google Custom Search, public
    }
    ```
 
-4. The server will be available in your MCP client with 29 tools, 23 resources, and 22 prompts (zero keys required).
+4. The server will be available in your MCP client with 24 tools, 23 resources, and 22 prompts (zero keys required).
 
 ## Origins
 
@@ -132,22 +132,19 @@ Web search, academic discovery, news monitoring, and intelligence capabilities w
 - `search_trends` - Track search and community interest trends with Hacker News Algolia integration
 - `research_brief` - Fast multi-source brief: parallel Google/web + Wikipedia fan-out, cross-source dedup, exact-match ranking
 
-### Wikipedia Tools (10 tools)
+### Wikipedia Tools (5 tools)
 
 ![Blotcat rapidly batch-sorting Wikipedia pages into language buckets](assets/blotcat-wikipedia.jpg)
 
 Wikipedia integration for encyclopedic knowledge access:
 
-- `wikipedia_search` - Search Wikipedia articles matching a query
-- `wikipedia_get_page` - Get full Wikipedia page content
-- `wikipedia_get_summary` - Get a brief summary of a Wikipedia page
-- `wikipedia_get_page_by_id` - Get Wikipedia page content by page ID
+- `wikipedia_search` - Search by `query`, batch `queries`, or `coord` (`{lat, lon}` plus `radius`)
+- `wikipedia_get` - Get by `title`, `pageId`, or batch `titles`; `format: summary | full`
 - `wikipedia_random` - Get a random Wikipedia page
 - `wikipedia_page_languages` - Get the languages a Wikipedia page is available in
-- `wikipedia_batch_search` - Search multiple queries at once for efficiency
-- `wikipedia_batch_get_pages` - Get multiple Wikipedia pages at once for efficiency
-- `wikipedia_search_nearby` - Find Wikipedia articles near specific coordinates
 - `wikipedia_get_pages_in_category` - Browse pages within a specific Wikipedia category
+
+Legacy names (`wikipedia_get_page`, `wikipedia_get_page_by_id`, `wikipedia_get_summary`, `wikipedia_batch_get_pages`, `wikipedia_batch_search`, `wikipedia_search_nearby`) remain accepted as aliases but are no longer advertised.
 
 ### Research Resources (23 resources)
 
@@ -297,7 +294,7 @@ For global configuration (`~/.cursor/mcp.json`), replace `${workspaceFolder}` wi
 
 Wikipedia `search`/`getPage`/`getPageSummary` results carry a `Sources:` footer (canonical page URI, `retrieved_at`, confidence, freshness) so downstream consumers can cite provenance.
 
-**Zero-Key Out of the Box (No API Keys Required).** All 29 tools function completely free without requiring `GOOGLE_API_KEY` or `GOOGLE_CSE_ID`:
+**Zero-Key Out of the Box (No API Keys Required).** All 24 tools function completely free without requiring `GOOGLE_API_KEY` or `GOOGLE_CSE_ID`:
 - **Dual-Tier Web Search**: If Google API keys are unset or exhaust daily quotas, the server transparently falls back to parallel keyless search (DuckDuckGo + Bing + Mojeek + Yep) with secondary Wikipedia encyclopedic fallback.
 - **Native Academic Search**: `academic_search` queries arXiv's public OpenSearch API (`export.arxiv.org`), extracting paper titles, authors, summaries, arXiv links, and primary categories.
 - **Live News Monitor**: `news_monitor` queries Google News public RSS feeds (`news.google.com/rss/search`), delivering real-time headlines, source publishers, and timestamps.
@@ -370,17 +367,12 @@ The server provides the following 29 comprehensive research tools (all available
 - `search_trends` - Track search interest trends and Hacker News community metrics
 - `research_brief` - One-call brief: parallel Google/web + Wikipedia fan-out, cross-source dedup, exact-match ranking
 
-### Wikipedia Tools (10 total)
+### Wikipedia Tools (5 tools)
 
-- `wikipedia_search` - Search Wikipedia articles matching a query
-- `wikipedia_get_page` - Get full Wikipedia page content
-- `wikipedia_get_summary` - Get a brief summary of a Wikipedia page
-- `wikipedia_get_page_by_id` - Get Wikipedia page content by page ID
+- `wikipedia_search` - Search by `query`, batch `queries`, or `coord` (`{lat, lon}` plus `radius`)
+- `wikipedia_get` - Get by `title`, `pageId`, or batch `titles`; `format: summary | full`
 - `wikipedia_random` - Get a random Wikipedia page
 - `wikipedia_page_languages` - Get the languages a Wikipedia page is available in
-- `wikipedia_batch_search` - Search multiple queries at once for efficiency
-- `wikipedia_batch_get_pages` - Get multiple Wikipedia pages at once for efficiency
-- `wikipedia_search_nearby` - Find Wikipedia articles near specific coordinates
 - `wikipedia_get_pages_in_category` - Browse pages within a specific Wikipedia category
 
 ## Architecture

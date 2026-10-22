@@ -19,6 +19,13 @@ import {
   googleNewsSearch,
   hackerNewsSearch,
 } from './src/freeSearchService.js';
+import {
+  WIKIPEDIA_TOOLS,
+  normalizeWikipediaToolCall,
+  runWikipediaGet,
+  runWikipediaSearch,
+  type WikipediaToolDeps,
+} from './src/wikipediaTools.js';
 
 // Research Prompt Definitions - Rich Library for Research Workflows
 export const researchPrompts: Prompt[] = [
@@ -854,54 +861,8 @@ const tools = [
     },
   },
 
-  // Wikipedia Tools (10 total)
-  {
-    name: 'wikipedia_search',
-    description: 'Search Wikipedia articles',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Search query' },
-        limit: { type: 'number', description: 'Number of results (1-10)', minimum: 1, maximum: 10, default: 5 },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    name: 'wikipedia_get_page',
-    description: 'Get Wikipedia page content',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', description: 'Page title' },
-      },
-      required: ['title'],
-    },
-  },
-  {
-    name: 'wikipedia_get_page_by_id',
-    description: 'Get Wikipedia page content by ID',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'integer', description: 'Page ID', minimum: 1 },
-        lang: { type: 'string', description: 'Language code', default: 'en' },
-      },
-      required: ['id'],
-    },
-  },
-  {
-    name: 'wikipedia_get_summary',
-    description: 'Get a brief summary of a Wikipedia page',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', description: 'Page title' },
-        lang: { type: 'string', description: 'Language code', default: 'en' },
-      },
-      required: ['title'],
-    },
-  },
+  // Wikipedia Tools (5 total)
+  ...WIKIPEDIA_TOOLS,
   {
     name: 'wikipedia_random',
     description: 'Get a random Wikipedia page',
@@ -922,46 +883,6 @@ const tools = [
         lang: { type: 'string', description: 'Language code', default: 'en' },
       },
       required: ['title'],
-    },
-  },
-  {
-    name: 'wikipedia_batch_search',
-    description: 'Search multiple queries at once for efficiency',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        queries: { type: 'array', items: { type: 'string' }, description: 'Array of search queries', minItems: 1, maxItems: 10 },
-        lang: { type: 'string', description: 'Language code', default: 'en' },
-        limit: { type: 'number', description: 'Maximum number of results per query', minimum: 1, maximum: 20, default: 5 },
-      },
-      required: ['queries'],
-    },
-  },
-  {
-    name: 'wikipedia_batch_get_pages',
-    description: 'Get multiple Wikipedia pages at once for efficiency',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        titles: { type: 'array', items: { type: 'string' }, description: 'Array of page titles', minItems: 1, maxItems: 10 },
-        lang: { type: 'string', description: 'Language code', default: 'en' },
-      },
-      required: ['titles'],
-    },
-  },
-  {
-    name: 'wikipedia_search_nearby',
-    description: 'Find Wikipedia articles near specific coordinates',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        lat: { type: 'number', description: 'Latitude coordinate (-90 to 90)', minimum: -90, maximum: 90 },
-        lon: { type: 'number', description: 'Longitude coordinate (-180 to 180)', minimum: -180, maximum: 180 },
-        radius: { type: 'number', description: 'Search radius in meters', minimum: 1, maximum: 10000, default: 1000 },
-        lang: { type: 'string', description: 'Language code', default: 'en' },
-        limit: { type: 'number', description: 'Maximum number of results', minimum: 1, maximum: 50, default: 10 },
-      },
-      required: ['lat', 'lon'],
     },
   },
   {
@@ -1402,6 +1323,23 @@ export default class ResearchMCPServer {
     } catch (error) {
       throw new Error(`Prompt generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  private wikipediaToolDeps(): WikipediaToolDeps {
+    return {
+      defaultLang: config.wikipedia.defaultLang,
+      request: async (params, lang) => {
+        const response = await axios.get(`https://${lang}.wikipedia.org/w/api.php`, {
+          params,
+          headers: { 'User-Agent': config.userAgent },
+        });
+        return response.data;
+      },
+      search: (query, options) => this.wikipedia.search(query, options),
+      getPage: (title, options) => this.wikipedia.getPage(title, options),
+      getPageById: (id, options) => this.wikipedia.getPageById(id, options),
+      cleanContent: (content) => this.cleanWikipediaContent(content),
+    };
   }
 
   private cleanWikipediaContent(content: string): string {
@@ -8886,10 +8824,12 @@ Develop and execute a strategic research networking approach to build valuable c
 
     // Call tools
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
+      const { name, arguments: rawArgs } = request.params;
+      const call = normalizeWikipediaToolCall(name, (rawArgs ?? {}) as Record<string, unknown>);
+      const args = call.args;
 
       try {
-        switch (name) {
+        switch (call.name) {
           case 'google_search': {
             const { q } = args as any;
             const num = clampInt((args as any).num, 5, 1, 10);
@@ -8911,81 +8851,10 @@ Develop and execute a strategic research networking approach to build valuable c
           }
 
           case 'wikipedia_search':
-            const { query } = args as any;
-            const limit = clampInt((args as any).limit, 5, 1, 10);
-            const wikiCacheKey = `wiki:search:${config.wikipedia.defaultLang}:${query}`;
-            let wikiData = wikiCache.get(wikiCacheKey);
-            if (!wikiData) {
-              try {
-                const endpoint = `https://${config.wikipedia.defaultLang}.wikipedia.org/w/api.php`;
-                const response = await axios.get(endpoint, {
-                  params: {
-                    action: 'query',
-                    list: 'search',
-                    srsearch: query,
-                    format: 'json',
-                    srlimit: limit,
-                    srprop: 'title|snippet',
-                  },
-                  headers: { 'User-Agent': config.userAgent },
-                });
-                wikiData = response.data;
-                wikiCache.set(wikiCacheKey, wikiData);
-              } catch (error) {
-                return {
-                  content: [{ type: 'text', text: `Wikipedia search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-                };
-              }
-            }
+            return { content: (await runWikipediaSearch(args, this.wikipediaToolDeps())).content };
 
-            const wikiResults = wikiData?.query?.search || [];
-            const output = wikiResults.map((result: any) =>
-              `- **${result.title}**: ${result.snippet || 'No snippet available'}`
-            ).join('\n');
-
-            return {
-              content: [{ type: 'text', text: `Found ${wikiResults.length} Wikipedia results for "${query}":\n\n${output}` }],
-            };
-
-          case 'wikipedia_get_page':
-            const { title } = args as any;
-            const pageCacheKey = `wiki:page:${config.wikipedia.defaultLang}:${title}`;
-            let pageData = wikiCache.get(pageCacheKey);
-            if (!pageData) {
-              try {
-                const endpoint = `https://${config.wikipedia.defaultLang}.wikipedia.org/w/api.php`;
-                const response = await axios.get(endpoint, {
-                  params: {
-                    action: 'parse',
-                    page: title,
-                    format: 'json',
-                    prop: 'text',
-                    disableeditsection: '1',
-                  },
-                  headers: { 'User-Agent': config.userAgent },
-                });
-                pageData = response.data;
-                wikiCache.set(pageCacheKey, pageData);
-              } catch (error) {
-                return {
-                  content: [{ type: 'text', text: `Failed to get Wikipedia page: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-                };
-              }
-            }
-
-            const parsedPage = pageData?.parse;
-            if (!parsedPage) {
-              return {
-                content: [{ type: 'text', text: `Wikipedia page "${title}" not found.` }],
-              };
-            }
-
-            const content = parsedPage.text?.['*'] || 'No content available';
-            const cleanContent = cheerio.load(content).text().substring(0, 2000);
-
-            return {
-              content: [{ type: 'text', text: `**${parsedPage.title}**\n\n${cleanContent}...` }],
-            };
+          case 'wikipedia_get':
+            return { content: (await runWikipediaGet(args, this.wikipediaToolDeps())).content };
 
           case 'extract_content': {
             const { url } = args as any;
@@ -9430,65 +9299,6 @@ Develop and execute a strategic research networking approach to build valuable c
             }
           }
 
-          case 'wikipedia_get_page_by_id':
-            const { id, lang: idLang = 'en' } = args as any;
-            try {
-              const result = await this.wikipedia.getPageById(id, { lang: idLang });
-              if (!result.query?.pages?.[id]) {
-                return {
-                  content: [{ type: 'text', text: `Wikipedia page with ID ${id} not found.` }],
-                };
-              }
-
-              const page = result.query.pages[id];
-              const cleanContent = this.cleanWikipediaContent(page.extract || page.missing ? 'Page not found' : 'No content available');
-
-              return {
-                content: [{ type: 'text', text: `**${page.title}**\n\n${cleanContent.substring(0, 2000)}...` }],
-              };
-            } catch (error) {
-              return {
-                content: [{ type: 'text', text: `Failed to get Wikipedia page by ID: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-              };
-            }
-
-          case 'wikipedia_get_summary':
-            const { title: summaryTitle, lang: summaryLang = 'en' } = args as any;
-            try {
-              const endpoint = `https://${summaryLang}.wikipedia.org/w/api.php`;
-              const response = await axios.get(endpoint, {
-                params: {
-                  action: 'query',
-                  format: 'json',
-                  prop: 'extracts',
-                  titles: summaryTitle,
-                  exsentences: '3',
-                  explaintext: '1',
-                  exsectionformat: 'plain'
-                },
-                headers: { 'User-Agent': config.userAgent },
-              });
-
-              const data = response.data;
-              const pages = data.query?.pages;
-              const pageId = Object.keys(pages || {})[0];
-              const page = pages?.[pageId];
-
-              if (!page || page.missing) {
-                return {
-                  content: [{ type: 'text', text: `Summary for Wikipedia page "${summaryTitle}" not found.` }],
-                };
-              }
-
-              return {
-                content: [{ type: 'text', text: `Summary for "${summaryTitle}":\n\n${page.extract || 'No summary available'}` }],
-              };
-            } catch (error) {
-              return {
-                content: [{ type: 'text', text: `Failed to get Wikipedia summary: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-              };
-            }
-
           case 'wikipedia_random':
             const { lang: randomLang = 'en' } = args as any;
             try {
@@ -9558,114 +9368,6 @@ Develop and execute a strategic research networking approach to build valuable c
             } catch (error) {
               return {
                 content: [{ type: 'text', text: `Failed to get Wikipedia page languages: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-              };
-            }
-
-          case 'wikipedia_batch_search':
-            const { queries: wikiQueries, lang: batchLang = 'en', limit: batchLimit = 5 } = args as any;
-            try {
-              const results = [];
-              for (const query of wikiQueries.slice(0, 10)) {
-                try {
-                  const result = await this.wikipedia.search(query, { lang: batchLang, limit: batchLimit });
-                  results.push({ query, success: true, count: result?.query?.search?.length || 0 });
-                } catch (error) {
-                  results.push({ query, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
-                }
-              }
-
-              return {
-                content: [{
-                  type: 'text',
-                  text: `Batch Wikipedia search results for ${results.length} queries:\n\n${results.map((result, index) =>
-                    result.success
-                      ? `✅ "${result.query}": ${result.count} results`
-                      : `❌ "${result.query}": ${result.error}`
-                  ).join('\n')}`,
-                }],
-              };
-            } catch (error) {
-              return {
-                content: [{ type: 'text', text: `Batch Wikipedia search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-              };
-            }
-
-          case 'wikipedia_batch_get_pages':
-            const { titles: batchTitles, lang: batchPagesLang = 'en' } = args as any;
-            try {
-              const results = [];
-              for (const title of batchTitles.slice(0, 10)) {
-                try {
-                  const result = await this.wikipedia.getPage(title, { lang: batchPagesLang });
-                  const pageId = Object.keys(result.query?.pages || {})[0];
-                  const page = result.query?.pages?.[pageId];
-
-                  if (page && !page.missing) {
-                    const cleanContent = this.cleanWikipediaContent(page.extract || 'No content');
-                    results.push({
-                      title,
-                      success: true,
-                      content: cleanContent.substring(0, 500) + '...'
-                    });
-                  } else {
-                    results.push({ title, success: false, error: 'Page not found' });
-                  }
-                } catch (error) {
-                  results.push({ title, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
-                }
-              }
-
-              return {
-                content: [{
-                  type: 'text',
-                  text: `Batch Wikipedia page results for ${results.length} pages:\n\n${results.map((result, index) =>
-                    result.success
-                      ? `✅ **${result.title}**\n   ${result.content}`
-                      : `❌ **${result.title}**: ${result.error}`
-                  ).join('\n\n')}`,
-                }],
-              };
-            } catch (error) {
-              return {
-                content: [{ type: 'text', text: `Batch Wikipedia page retrieval failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-              };
-            }
-
-          case 'wikipedia_search_nearby':
-            const { lat, lon, radius = 1000, lang: nearbyLang = 'en', limit: nearbyLimit = 10 } = args as any;
-            try {
-              const endpoint = `https://${nearbyLang}.wikipedia.org/w/api.php`;
-              const response = await axios.get(endpoint, {
-                params: {
-                  action: 'query',
-                  format: 'json',
-                  list: 'geosearch',
-                  gscoord: `${lat}|${lon}`,
-                  gsradius: radius,
-                  gslimit: nearbyLimit,
-                  gsprop: 'type|name|country|region|globe'
-                },
-                headers: { 'User-Agent': config.userAgent },
-              });
-
-              const places = response.data?.query?.geosearch || [];
-              if (places.length === 0) {
-                return {
-                  content: [{ type: 'text', text: `No Wikipedia articles found near coordinates (${lat}, ${lon}) within ${radius}m radius.` }],
-                };
-              }
-
-              return {
-                content: [{
-                  type: 'text',
-                  text: `Found ${places.length} Wikipedia articles near (${lat}, ${lon}) within ${radius}m:\n\n${places.map((place: any, index: number) =>
-                    `${index + 1}. 📍 ${place.title}\n   Distance: ${place.dist}m\n   Coordinates: ${place.lat}, ${place.lon}`
-                  ).join('\n\n')}`,
-                }],
-              };
-            } catch (error) {
-              return {
-                content: [{ type: 'text', text: `Wikipedia nearby search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }
 
@@ -9989,7 +9691,7 @@ Develop and execute a strategic research networking approach to build valuable c
               contents: [{
                 uri,
                 mimeType: 'application/json',
-                text: JSON.stringify({ error: 'Page not cached. Use the wikipedia_get_page tool first.' }),
+                text: JSON.stringify({ error: 'Page not cached. Use the wikipedia_get tool first.' }),
               }],
             };
           }
