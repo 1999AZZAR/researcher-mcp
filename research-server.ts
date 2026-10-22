@@ -713,7 +713,7 @@ const tools = [
   // Google Search Tools (10 total)
   {
     name: 'google_search',
-    description: 'Search the web using Google Custom Search API',
+    description: 'Canonical web search: Google Custom Search API. Use for factual lookups; prefer over browser-scoped search.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -725,7 +725,7 @@ const tools = [
   },
   {
     name: 'extract_content',
-    description: 'Extract main content from a web page',
+    description: 'Canonical content extraction: fetch a URL and extract its main content. Use browser_get_page_markdown only when client-side JavaScript is required.',
     inputSchema: {
       type: 'object',
       properties: {

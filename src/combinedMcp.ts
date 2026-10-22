@@ -170,7 +170,7 @@ export function createCombinedMcp(
       {
         title: "Extract Content",
         description:
-          "Fetch a URL and extract its main content (keyless Jina reader fallback; set JINA_API_KEY for higher quota).",
+          "Canonical content extraction: fetch a URL and extract its main content via HTTP/Readability (keyless Jina reader fallback; set JINA_API_KEY for higher quota). Use browser_get_page_markdown only when client-side JavaScript is required.",
         inputSchema: {
           url: z.string().describe("The URL to extract."),
         },
@@ -198,7 +198,7 @@ export function createCombinedMcp(
     "google_search",
     {
       title: "Google Search",
-      description: "Web search via Google Custom Search.",
+      description: "Canonical web search: Google Custom Search with keyless multi-engine fallback. Use for factual lookups; prefer over browser-scoped search.",
       inputSchema: {
         query: z.string().describe("The search query."),
         num: z.number().min(1).max(10).optional().describe("Max results (1-10)."),
@@ -298,7 +298,7 @@ export function createCombinedMcp(
     "extract_content",
     {
       title: "Extract Content",
-      description: "Fetch a URL and extract/analyze its main content.",
+      description: "Canonical content extraction: fetch a URL and extract/analyze its main content via HTTP/Readability. Use browser_get_page_markdown only when client-side JavaScript is required.",
       inputSchema: {
         url: z.string().describe("The URL to extract."),
       },
