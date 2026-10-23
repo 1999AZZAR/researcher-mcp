@@ -22,6 +22,7 @@ import {
 import {
   WIKIPEDIA_TOOLS,
   normalizeWikipediaToolCall,
+  wikipediaDeprecationWarning,
   runWikipediaGet,
   runWikipediaSearch,
   type WikipediaToolDeps,
@@ -8827,6 +8828,10 @@ Develop and execute a strategic research networking approach to build valuable c
       const { name, arguments: rawArgs } = request.params;
       const call = normalizeWikipediaToolCall(name, (rawArgs ?? {}) as Record<string, unknown>);
       const args = call.args;
+      const deprecation = wikipediaDeprecationWarning(name);
+      const withDeprecation = (content: any[]) => deprecation
+        ? [...content, { type: 'text' as const, text: `Warning: ${deprecation}` }]
+        : content;
 
       try {
         switch (call.name) {
@@ -8851,10 +8856,10 @@ Develop and execute a strategic research networking approach to build valuable c
           }
 
           case 'wikipedia_search':
-            return { content: (await runWikipediaSearch(args, this.wikipediaToolDeps())).content };
+            return { content: withDeprecation((await runWikipediaSearch(args, this.wikipediaToolDeps())).content) };
 
           case 'wikipedia_get':
-            return { content: (await runWikipediaGet(args, this.wikipediaToolDeps())).content };
+            return { content: withDeprecation((await runWikipediaGet(args, this.wikipediaToolDeps())).content) };
 
           case 'extract_content': {
             const { url } = args as any;

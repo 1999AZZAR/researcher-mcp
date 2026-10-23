@@ -203,6 +203,12 @@ export function resolveWikipediaSearchArgs(input: Record<string, unknown> = {}, 
   };
 }
 
+export function wikipediaDeprecationWarning(name: string): string | undefined {
+  if (!(WIKIPEDIA_LEGACY_ALIASES as readonly string[]).includes(name)) return undefined;
+  const target = normalizeWikipediaToolCall(name).name;
+  return `Deprecated tool "${name}" is now "${target}". The legacy alias remains available during the v1.2 transition.`;
+}
+
 export function normalizeWikipediaToolCall(
   name: string,
   args: Record<string, unknown> = {}

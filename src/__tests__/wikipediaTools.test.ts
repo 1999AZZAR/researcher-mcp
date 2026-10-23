@@ -4,6 +4,7 @@ import {
   WIKIPEDIA_TOOLS,
   WIKIPEDIA_LEGACY_ALIASES,
   normalizeWikipediaToolCall,
+  wikipediaDeprecationWarning,
   resolveWikipediaGetArgs,
   resolveWikipediaSearchArgs,
   runWikipediaGet,
@@ -205,6 +206,15 @@ describe('legacy wikipedia aliases', () => {
     ],
   ])('maps %s', (name, args, expected) => {
     expect(normalizeWikipediaToolCall(name, args as Record<string, unknown>)).toEqual(expected);
+  });
+
+  test('warns on legacy aliases only', () => {
+    expect(wikipediaDeprecationWarning('wikipedia_get_page')).toContain(
+      '"wikipedia_get_page" is now "wikipedia_get"',
+    );
+    expect(wikipediaDeprecationWarning('wikipedia_batch_search')).toContain('"wikipedia_search"');
+    expect(wikipediaDeprecationWarning('wikipedia_get')).toBeUndefined();
+    expect(wikipediaDeprecationWarning('google_search')).toBeUndefined();
   });
 
   test('canonical names and unknown tools pass through unchanged', () => {
