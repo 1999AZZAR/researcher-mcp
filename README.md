@@ -1,7 +1,7 @@
 # Research MCP Server
 
 
-> **Part of the [HeLa MCP Ecosystem](https://github.com/1999AZZAR/hela-mcp-ecosystem)** — This server is **HeLa Enzyme (`hela-enzyme`)** — the *Knowledge* component of the HeLa cellular architecture. See the [ecosystem docs](https://github.com/1999AZZAR/hela-mcp-ecosystem) for profiles, workflows, and multi-client setup.
+> **Part of the [HeLa MCP Ecosystem](https://github.com/Hela-Ecosystem/hela-mcp-ecosystem)** — This server is **HeLa Enzyme (`hela-enzyme`)** — the *Knowledge* component of the HeLa cellular architecture. See the [ecosystem docs](https://github.com/Hela-Ecosystem/hela-mcp-ecosystem) for profiles, workflows, and multi-client setup.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.18.1-brightgreen)](https://nodejs.org/)
@@ -24,7 +24,7 @@ A Model Context Protocol (MCP) server that combines Google Custom Search, public
 1. Clone and install:
 
    ```bash
-   git clone https://github.com/1999AZZAR/researcher-mcp.git
+   git clone https://github.com/Hela-Ecosystem/researcher-mcp.git
    cd researcher-mcp
    npm install
    ```
@@ -64,8 +64,8 @@ A Model Context Protocol (MCP) server that combines Google Custom Search, public
 
 This project is a combined and enhanced version of:
 
-- [**Google-Search-MCP**](https://github.com/1999AZZAR/Google-Search-MCP) - Original Google Custom Search MCP server
-- [**wikipedia-mcp-server**](https://github.com/1999AZZAR/wikipedia-mcp-server) - Original Wikipedia MCP server
+- [**Google-Search-MCP**](https://github.com/Hela-Ecosystem/Google-Search-MCP) - Original Google Custom Search MCP server
+- [**wikipedia-mcp-server**](https://github.com/Hela-Ecosystem/wikipedia-mcp-server) - Original Wikipedia MCP server
 
 The researcher-mcp builds upon these foundations, adding enhanced analysis tools, improved caching, unified configuration, and a comprehensive prompt library while maintaining compatibility with the original MCP specifications.
 

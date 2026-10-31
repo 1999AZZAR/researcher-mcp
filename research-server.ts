@@ -572,7 +572,7 @@ const config = {
   server: {
     name: process.env.SERVER_NAME || 'hela-enzyme',
   },
-  userAgent: process.env.RESEARCHER_USER_AGENT || 'hela-enzyme/1.0 (researcher-mcp; +https://github.com/1999AZZAR/researcher-mcp)',
+  userAgent: process.env.RESEARCHER_USER_AGENT || 'hela-enzyme/1.0 (researcher-mcp; +https://github.com/Hela-Ecosystem/researcher-mcp)',
 };
 
 // Shared helpers: caps, dedup, bounded parallelism, quota detection.

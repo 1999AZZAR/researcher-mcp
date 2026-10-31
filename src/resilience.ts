@@ -148,7 +148,7 @@ export class WikipediaEndpointManager {
               const response = await fetch(`${endpoint}${path}`, {
                 signal: controller.signal,
                 headers: {
-                  'User-Agent': 'Wikipedia-MCP-Server/1.0 (https://github.com/1999AZZAR/wikipedia-mcp-server)'
+                  'User-Agent': 'Wikipedia-MCP-Server/1.0 (https://github.com/Hela-Ecosystem/wikipedia-mcp-server)'
                 }
               });
 
