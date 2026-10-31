@@ -19,7 +19,7 @@ export function createWikipediaMcp(
 
   const server = new McpServer({
     name: "wikipedia-mcp-server",
-    version: "1.0.0",
+    version: "3.0.0",
   });
 
   registerEnvTool(server, 
