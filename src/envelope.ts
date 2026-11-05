@@ -170,7 +170,7 @@ export function registerEnvTool<TArgs extends z.ZodRawShape>(
       openWorldHint?: boolean;
     };
   },
-  cb: (args: z.objectOutputType<TArgs, z.ZodTypeAny, "strip">) => any,
+  cb: (args: z.output<z.ZodObject<TArgs>>) => any,
 ): void {
   (server as any).registerTool(name, config, async (args: any) => {
     let result = await cb(args);
