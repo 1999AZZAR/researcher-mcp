@@ -19,7 +19,7 @@ This document provides guidelines for contributing to the Research MCP Server pr
 
 ### Prerequisites
 
-- Node.js ≥18.0.0
+- Node.js ≥20.18.1; Node 22 LTS is the tested ecosystem environment
 - npm or yarn package manager
 - TypeScript compiler
 - Git
@@ -30,14 +30,14 @@ This document provides guidelines for contributing to the Research MCP Server pr
 2. Clone your fork:
 
    ```bash
-   git clone https://github.com/your-username/research-mcp-server.git
-   cd research-mcp-server
+   git clone https://github.com/your-username/researcher-mcp.git
+   cd researcher-mcp
    ```
 
 3. Add the upstream remote:
 
    ```bash
-   git remote add upstream https://github.com/original-owner/research-mcp-server.git
+   git remote add upstream https://github.com/Hela-Ecosystem/researcher-mcp.git
    ```
 
 4. Create a feature branch:
@@ -83,7 +83,7 @@ This document provides guidelines for contributing to the Research MCP Server pr
 ### Project Structure
 
 ```
-research-mcp-server/
+researcher-mcp/
 ├── src/
 │   ├── __tests__/           # Test files
 │   ├── config.ts           # Configuration management

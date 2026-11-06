@@ -1,5 +1,9 @@
 # Research MCP Server
 
+<!-- hela:version:start -->
+**MCP server:** `hela-enzyme` · **Version:** `3.0.0` · **Canonical tools:** 24. [Current tool reference](docs/TOOLS.md).
+<!-- hela:version:end -->
+
 
 > **Part of the [HeLa MCP Ecosystem](https://github.com/Hela-Ecosystem/hela-mcp-ecosystem)** — This server is **HeLa Enzyme (`hela-enzyme`)** — the *Knowledge* component of the HeLa cellular architecture. See the [ecosystem docs](https://github.com/Hela-Ecosystem/hela-mcp-ecosystem) for profiles, workflows, and multi-client setup.
 
@@ -564,7 +568,7 @@ We welcome contributions to the Research MCP Server. Please see our [Contributin
 
 ### Common Issues
 
-- Server won't start: Check Node.js version (≥18.0.0) and environment variables
+- Server won't start: Check Node.js version (≥20.18.1; Node 22 LTS is tested) and environment variables
 - API errors: Verify Google API keys and network connectivity
 - Performance issues: Check cache configuration and available memory
 - MCP client issues: Ensure proper `.cursor/mcp.json` configuration
