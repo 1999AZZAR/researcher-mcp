@@ -31,7 +31,7 @@ export function getServerSchema(): ServerSchema {
   return {
     serverInfo: {
       name: "wikipedia-mcp-server",
-      version: "3.0.0",
+      version: "4.0.0",
       description: "An enterprise-grade Wikipedia server providing comprehensive Wikipedia access via the Model Context Protocol (MCP) standard"
     },
     tools: [

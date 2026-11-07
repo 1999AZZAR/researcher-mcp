@@ -5,7 +5,8 @@ import { WikipediaExtendedFeatures } from "./additionalFeatures.js";
 import { GoogleSearchService } from "./googleSearchService.js";
 import { freeSearch, freeExtract, listFreeEngines } from "./freeSearchService.js";
 import { createWikipediaMcp } from "./mcp.js";
-import { registerEnvTool } from "./envelope.js";
+import { registerEnvTool, withEnvelope } from "./envelope.js";
+import { googleSearchInput } from "./googleSearchTools.js";
 import {
   searchProvenance,
   wikipediaSearchUrl,
@@ -193,16 +194,12 @@ export function createCombinedMcp(
   }
   const google = googleSearchService;
 
-  registerEnvTool(
-    server,
+  server.registerTool(
     "google_search",
     {
       title: "Google Search",
       description: "Canonical web search: Google Custom Search with keyless multi-engine fallback. Use for factual lookups; prefer over browser-scoped search.",
-      inputSchema: {
-        query: z.string().describe("The search query."),
-        num: z.number().min(1).max(10).optional().describe("Max results (1-10)."),
-      },
+      inputSchema: googleSearchInput,
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (args) => {
@@ -212,7 +209,7 @@ export function createCombinedMcp(
         googleSource(args.query),
         searchProvenance(args.query),
       ]);
-      return `${formatGoogleItems(items)}\n\n${footer}`;
+      return withEnvelope("google_search", { content: [{ type: "text", text: `${formatGoogleItems(items)}\n\n${footer}` }] });
     }
   );
 

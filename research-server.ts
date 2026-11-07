@@ -11,6 +11,7 @@ import axiosRetry from 'axios-retry';
 import * as cheerio from 'cheerio';
 import LRUCache from 'lru-cache';
 import Sentiment from 'sentiment';
+import { GOOGLE_SEARCH_TOOL, googleSearchInput } from './src/googleSearchTools.js';
 import { Prompt, GetPromptRequestSchema, ListPromptsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import {
   freeSearch,
@@ -719,18 +720,7 @@ const tools = [
   },
 
   // Google Search Tools (10 total)
-  {
-    name: 'google_search',
-    description: 'Canonical web search: Google Custom Search API. Use for factual lookups; prefer over browser-scoped search.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        q: { type: 'string', description: 'Search query' },
-        num: { type: 'number', description: 'Number of results (1-10)', minimum: 1, maximum: 10, default: 5 },
-      },
-      required: ['q'],
-    },
-  },
+  GOOGLE_SEARCH_TOOL,
   {
     name: 'extract_content',
     description: 'Canonical content extraction: fetch a URL and extract its main content. Use hela-cytosol browser_get_content (format=markdown) only when client-side JavaScript is required.',
@@ -1099,7 +1089,7 @@ export default class ResearchMCPServer {
     this.server = new Server(
       {
         name: config.server.name,
-        version: '3.0.0',
+        version: '4.0.0',
       },
       {
         capabilities: {
@@ -8836,20 +8826,20 @@ Develop and execute a strategic research networking approach to build valuable c
       try {
         switch (call.name) {
           case 'google_search': {
-            const { q } = args as any;
-            const num = clampInt((args as any).num, 5, 1, 10);
             try {
-              const data = await this.googleSearch.search({ q, num });
+              const { query, num } = googleSearchInput.parse(args);
+              const data = await this.googleSearch.search({ q: query, num });
               const items = data.items || [];
               const results = items.map((item: any, index: number) =>
                 `${index + 1}. **${item.title}**\n   ${item.snippet}\n   ${item.link}`
               ).join('\n\n');
 
               return {
-                content: [{ type: 'text', text: `Found ${items.length} results for "${q}":\n\n${results || 'No results found.'}` }],
+                content: [{ type: 'text', text: `Found ${items.length} results for "${query}":\n\n${results || 'No results found.'}` }],
               };
             } catch (error) {
               return {
+                isError: true,
                 content: [{ type: 'text', text: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}` }],
               };
             }

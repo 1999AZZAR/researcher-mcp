@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.0 — consistent search input
+
+- **Breaking:** `google_search` requires `query`, matching the other text-search tools. `q` is rejected, not translated or retained as an alias. Batch APIs keep `queries`.
+- Share strict Google search validation between the shipped and modular entrypoints: non-empty trimmed queries, integer result counts from 1 to 10, and rejection of unknown fields before provider requests.
+- Report Google search failures as MCP tool errors. Provider-facing HTTP `q` parameters remain unchanged.
+
 All notable changes to this project.
 
 ## Unreleased

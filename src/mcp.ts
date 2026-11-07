@@ -19,10 +19,10 @@ export function createWikipediaMcp(
 
   const server = new McpServer({
     name: "wikipedia-mcp-server",
-    version: "3.0.0",
+    version: "4.0.0",
   });
 
-  registerEnvTool(server, 
+  registerEnvTool(server,
     opts?.wikipediaSearchName ?? "search",
     {
       title: "Wikipedia Search",
@@ -71,7 +71,7 @@ export function createWikipediaMcp(
     }
   );
 
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "getPage",
     {
       title: "Get Wikipedia Page",
@@ -129,7 +129,7 @@ export function createWikipediaMcp(
     }
   );
 
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "getPageSummary",
     {
       title: "Get Wikipedia Page Summary",
@@ -166,7 +166,7 @@ export function createWikipediaMcp(
     }
   );
 
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "getPageById",
     {
       title: "Get Wikipedia Page by ID",
@@ -224,7 +224,7 @@ export function createWikipediaMcp(
     }
   );
 
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "random",
     {
       title: "Get Random Wikipedia Page",
@@ -261,7 +261,7 @@ export function createWikipediaMcp(
     }
   );
 
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "pageLanguages",
     {
       title: "Get Wikipedia Page Languages",
@@ -301,7 +301,7 @@ export function createWikipediaMcp(
   );
 
   // Batch Operations Tools
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "batchSearch",
     {
       title: "Batch Wikipedia Search",
@@ -350,7 +350,7 @@ export function createWikipediaMcp(
     }
   );
 
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "batchGetPages",
     {
       title: "Batch Get Wikipedia Pages",
@@ -401,7 +401,7 @@ export function createWikipediaMcp(
   );
 
   // Geographic Search Tool
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "searchNearby",
     {
       title: "Search Wikipedia Articles Near Location",
@@ -449,7 +449,7 @@ export function createWikipediaMcp(
         content: [
           {
             type: "text",
-            text: `Found ${places.length} Wikipedia articles near (${lat}, ${lon}) within ${radius}m:\n\n${places.map((place: any) => 
+            text: `Found ${places.length} Wikipedia articles near (${lat}, ${lon}) within ${radius}m:\n\n${places.map((place: any) =>
               `📍 ${place.title}\n   Distance: ${place.dist}m\n   Coordinates: ${place.lat}, ${place.lon}`
             ).join('\n\n')}`,
           },
@@ -459,7 +459,7 @@ export function createWikipediaMcp(
   );
 
   // Category Exploration Tool
-  registerEnvTool(server, 
+  registerEnvTool(server,
     "getPagesInCategory",
     {
       title: "Get Pages in Wikipedia Category",
@@ -503,7 +503,7 @@ export function createWikipediaMcp(
         content: [
           {
             type: "text",
-            text: `Found ${members.length} ${type}s in category "${category}":\n\n${members.map((member: any) => 
+            text: `Found ${members.length} ${type}s in category "${category}":\n\n${members.map((member: any) =>
               `📄 ${member.title} (ID: ${member.pageid})`
             ).join('\n')}`,
           },
@@ -961,4 +961,4 @@ export function createWikipediaMcp(
   // No need to manually set a handler
 
   return server;
-} 
+}
