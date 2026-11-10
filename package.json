@@ -3,7 +3,7 @@
   "description": "A comprehensive Model Context Protocol (MCP) server providing advanced research capabilities by combining Google Custom Search and Wikipedia functionality for thorough information retrieval and analysis.",
   "version": "4.0.0",
   "author": "Azzar Budiyanto",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

@@ -9,7 +9,7 @@ Single text searches use `query`; batch searches use `queries`. For example, cal
 
 > **Part of the [HeLa MCP Ecosystem](https://github.com/Hela-Ecosystem/hela-mcp-ecosystem)** — This server is **HeLa Enzyme (`hela-enzyme`)** — the *Knowledge* component of the HeLa cellular architecture. See the [ecosystem docs](https://github.com/Hela-Ecosystem/hela-mcp-ecosystem) for profiles, workflows, and multi-client setup.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-yellow.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.18.1-brightgreen)](https://nodejs.org/)
 
 A Model Context Protocol (MCP) server that combines Google Custom Search, public academic/news APIs, and Wikipedia functionality for deep research and information retrieval. The server provides 24 tools, 23 resources, and 22 research prompts with **full zero-key fallback out of the box** — no paid API keys required.
@@ -536,7 +536,7 @@ npm test -- path/to/test/file
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU GPL-3.0-or-later - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
