@@ -1,7 +1,7 @@
 # Research MCP Server
 
 <!-- hela:version:start -->
-**MCP server:** `hela-enzyme` · **Version:** `4.0.0` · **Canonical tools:** 24. [Current tool reference](docs/TOOLS.md).
+**MCP server:** `hela-enzyme` · **Version:** `4.0.1` · **Canonical tools:** 24. [Current tool reference](docs/TOOLS.md).
 
 Single text searches use `query`; batch searches use `queries`. For example, call `google_search` with `{"query":"MCP search interfaces","num":5}`. Version 4 rejects the old `q` argument, including requests that send both `query` and `q`; there is no compatibility alias. `num` must be an integer from 1 to 10. Google and other providers still receive their required HTTP parameters internally.
 <!-- hela:version:end -->

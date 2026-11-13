@@ -1089,7 +1089,7 @@ export default class ResearchMCPServer {
     this.server = new Server(
       {
         name: config.server.name,
-        version: '4.0.0',
+                        version: '4.0.1',
       },
       {
         capabilities: {
